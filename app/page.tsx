@@ -1,10 +1,11 @@
-import type { ThemeKey } from "@/lib/types";
 import { AllocatorPage } from "@/components/allocator-page";
 import { getAllocationProjects } from "@/lib/projects";
 import {
   parseBudgetParam,
+  parseCriterionMultipliersParam,
+  parseMaxProjectsParam,
   parsePresetParam,
-  parseThemesParam,
+  parseThemeMultipliersParam,
 } from "@/lib/url-state";
 
 type HomeProps = {
@@ -19,19 +20,27 @@ export default async function Home({ searchParams }: HomeProps) {
   const projects = await getAllocationProjects();
   const resolvedSearchParams = (await searchParams) ?? {};
   const budget = parseBudgetParam(getSingleParam(resolvedSearchParams.budget));
+  const maxProjects = parseMaxProjectsParam(
+    getSingleParam(resolvedSearchParams.max),
+  );
   const presetKey = parsePresetParam(
     getSingleParam(resolvedSearchParams.preset),
   );
-  const selectedThemes = parseThemesParam(
-    getSingleParam(resolvedSearchParams.themes),
-  ) as ThemeKey[];
+  const criterionMultipliers = parseCriterionMultipliersParam(
+    getSingleParam(resolvedSearchParams.cw),
+  );
+  const themeMultipliers = parseThemeMultipliersParam(
+    getSingleParam(resolvedSearchParams.tw),
+  );
 
   return (
     <AllocatorPage
       projects={projects}
       initialBudget={budget}
+      initialMaxProjects={maxProjects}
       initialPresetKey={presetKey}
-      initialSelectedThemes={selectedThemes}
+      initialCriterionMultipliers={criterionMultipliers}
+      initialThemeMultipliers={themeMultipliers}
     />
   );
 }

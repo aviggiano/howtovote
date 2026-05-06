@@ -5,9 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   CircleDollarSign,
   Link2,
+  Minus,
   RefreshCw,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
+  Target,
+  Plus,
 } from "lucide-react";
 import { AllocationSummary } from "@/components/allocator/allocation-summary";
 import { ProjectTable } from "@/components/allocator/project-table";
@@ -22,17 +26,47 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { defaultBudget, defaultPresetKey, presets } from "@/data/presets";
+import {
+  defaultBudget,
+  defaultMaxProjects,
+  defaultPresetKey,
+  maxUserWeightMultiplier,
+  minUserWeightMultiplier,
+  presets,
+  unitCriterionMultipliers,
+  unitThemeMultipliers,
+  weightStep,
+} from "@/data/presets";
 import { themeDefinitionByKey, themeDefinitions } from "@/data/themes";
 import { scoreProjects } from "@/lib/scoring";
-import type { AllocationProject, ThemeKey } from "@/lib/types";
-import { serializeThemes } from "@/lib/url-state";
+import {
+  criterionDefinitions,
+  type AllocationProject,
+  type CriterionKey,
+  type CriterionWeights,
+  type ThemeKey,
+  type ThemeWeights,
+} from "@/lib/types";
+import {
+  serializeCriterionMultipliers,
+  serializeThemeMultipliers,
+} from "@/lib/url-state";
 
 type AllocatorPageProps = {
   projects: AllocationProject[];
   initialBudget: number;
+  initialMaxProjects: number;
   initialPresetKey: string;
-  initialSelectedThemes: ThemeKey[];
+  initialCriterionMultipliers: CriterionWeights;
+  initialThemeMultipliers: ThemeWeights;
+};
+
+type WeightStepperProps = {
+  label: string;
+  description: string;
+  value: number;
+  onDecrease: () => void;
+  onIncrease: () => void;
 };
 
 function formatCurrency(value: number) {
@@ -43,9 +77,29 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function formatMultiplier(value: number) {
+  return `${value.toFixed(2)}x`;
+}
+
+function clampWeight(value: number) {
+  return Number(
+    Math.max(
+      minUserWeightMultiplier,
+      Math.min(maxUserWeightMultiplier, value),
+    ).toFixed(2),
+  );
+}
+
 function parseBudgetValue(value: string) {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultBudget;
+}
+
+function parseMaxProjectsValue(value: string, projectCount: number) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0
+    ? Math.min(projectCount, parsed)
+    : defaultMaxProjects;
 }
 
 function buildSearchHaystack(project: AllocationProject) {
@@ -64,65 +118,161 @@ function buildSearchHaystack(project: AllocationProject) {
     .toLowerCase();
 }
 
+function adjustWeight<T extends string>(
+  weights: Record<T, number>,
+  key: T,
+  direction: -1 | 1,
+) {
+  return {
+    ...weights,
+    [key]: clampWeight(weights[key] + direction * weightStep),
+  };
+}
+
+function WeightStepper({
+  label,
+  description,
+  value,
+  onDecrease,
+  onIncrease,
+}: WeightStepperProps) {
+  return (
+    <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-foreground font-semibold">{label}</p>
+          <p className="text-muted-foreground mt-1 text-sm leading-6">
+            {description}
+          </p>
+        </div>
+        <Badge variant="secondary" className="rounded-full">
+          {formatMultiplier(value)}
+        </Badge>
+      </div>
+      <div className="mt-4 flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="rounded-full"
+          onClick={onDecrease}
+          disabled={value <= minUserWeightMultiplier}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <div className="border-border/70 bg-secondary/40 text-foreground flex-1 rounded-full border px-3 py-2 text-center text-sm font-medium">
+          {formatMultiplier(value)}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="rounded-full"
+          onClick={onIncrease}
+          disabled={value >= maxUserWeightMultiplier}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function AllocatorPage({
   projects,
   initialBudget,
+  initialMaxProjects,
   initialPresetKey,
-  initialSelectedThemes,
+  initialCriterionMultipliers,
+  initialThemeMultipliers,
 }: AllocatorPageProps) {
   const router = useRouter();
   const pathname = usePathname();
+
   const [presetKey, setPresetKey] = useState(
     initialPresetKey || defaultPresetKey,
   );
   const [budget, setBudget] = useState(initialBudget || defaultBudget);
-  const [selectedThemes, setSelectedThemes] = useState(
-    initialSelectedThemes ?? [],
+  const [maxProjects, setMaxProjects] = useState(
+    initialMaxProjects || defaultMaxProjects,
   );
-
+  const [criterionMultipliers, setCriterionMultipliers] = useState(
+    initialCriterionMultipliers,
+  );
+  const [themeMultipliers, setThemeMultipliers] = useState(
+    initialThemeMultipliers,
+  );
   const [query, setQuery] = useState("");
   const [copied, setCopied] = useState(false);
   const deferredQuery = useDeferredValue(query);
 
   const recommendations = scoreProjects(projects, {
     budget,
+    maxProjects,
     presetKey,
-    selectedThemes,
+    criterionMultipliers,
+    themeMultipliers,
   });
 
   const filteredRecommendations = recommendations.filter((project) =>
     buildSearchHaystack(project).includes(deferredQuery.trim().toLowerCase()),
   );
 
+  const allocatedProjects = filteredRecommendations.filter(
+    (project) => project.allocationPercent > 0,
+  );
   const topThemes = Array.from(
     new Set(
-      filteredRecommendations
-        .slice(0, 8)
+      allocatedProjects
+        .slice(0, Math.max(5, maxProjects))
         .flatMap((project) => project.curation.themeBaskets),
     ),
   );
 
+  const activeCriterionWeights = criterionDefinitions.filter(
+    (criterion) => criterionMultipliers[criterion.key] !== 1,
+  );
+  const activeThemeWeights = themeDefinitions.filter(
+    (theme) => themeMultipliers[theme.key] !== 1,
+  );
+
   function updateUrlState(next: {
     budget?: number;
+    maxProjects?: number;
     presetKey?: string;
-    selectedThemes?: ThemeKey[];
+    criterionMultipliers?: CriterionWeights;
+    themeMultipliers?: ThemeWeights;
   }) {
     const nextBudget = next.budget ?? budget;
+    const nextMaxProjects = next.maxProjects ?? maxProjects;
     const nextPresetKey = next.presetKey ?? presetKey;
-    const nextThemes = next.selectedThemes ?? selectedThemes;
+    const nextCriterionMultipliers =
+      next.criterionMultipliers ?? criterionMultipliers;
+    const nextThemeMultipliers = next.themeMultipliers ?? themeMultipliers;
+
     const params = new URLSearchParams();
 
     setBudget(nextBudget);
+    setMaxProjects(nextMaxProjects);
     setPresetKey(nextPresetKey);
-    setSelectedThemes(nextThemes);
+    setCriterionMultipliers(nextCriterionMultipliers);
+    setThemeMultipliers(nextThemeMultipliers);
 
     params.set("budget", String(nextBudget));
+    params.set("max", String(nextMaxProjects));
     params.set("preset", nextPresetKey);
 
-    if (nextThemes.length > 0) {
-      params.set("themes", serializeThemes(nextThemes));
-    } else {
-      params.delete("themes");
+    const serializedCriteria = serializeCriterionMultipliers(
+      nextCriterionMultipliers,
+    );
+    const serializedThemes = serializeThemeMultipliers(nextThemeMultipliers);
+
+    if (serializedCriteria) {
+      params.set("cw", serializedCriteria);
+    }
+
+    if (serializedThemes) {
+      params.set("tw", serializedThemes);
     }
 
     startTransition(() => {
@@ -130,16 +280,31 @@ export function AllocatorPage({
     });
   }
 
-  function toggleTheme(themeKey: ThemeKey) {
-    const themeSet = new Set(selectedThemes);
+  function resetCustomization() {
+    updateUrlState({
+      maxProjects: defaultMaxProjects,
+      criterionMultipliers: unitCriterionMultipliers,
+      themeMultipliers: unitThemeMultipliers,
+    });
+  }
 
-    if (themeSet.has(themeKey)) {
-      themeSet.delete(themeKey);
-    } else {
-      themeSet.add(themeKey);
-    }
+  function updateCriterionMultiplier(
+    criterionKey: CriterionKey,
+    direction: -1 | 1,
+  ) {
+    updateUrlState({
+      criterionMultipliers: adjustWeight(
+        criterionMultipliers,
+        criterionKey,
+        direction,
+      ),
+    });
+  }
 
-    updateUrlState({ selectedThemes: Array.from(themeSet) as ThemeKey[] });
+  function updateThemeMultiplier(themeKey: ThemeKey, direction: -1 | 1) {
+    updateUrlState({
+      themeMultipliers: adjustWeight(themeMultipliers, themeKey, direction),
+    });
   }
 
   async function copyShareLink() {
@@ -176,13 +341,13 @@ export function AllocatorPage({
                   Shape a smarter donation split before you open Giveth.
                 </h1>
                 <p className="text-muted-foreground max-w-3xl text-base leading-8 sm:text-lg">
-                  This page turns the round spreadsheet into a donor-facing
-                  recommendation engine. Pick a preset, emphasize the baskets
-                  you care about, set your budget, and share the exact state by
-                  URL.
+                  Start from a preset, then change the actual weights. You can
+                  favor tooling, deprioritize other baskets, raise track record,
+                  and cap the final recommendation to a smaller number of
+                  projects like 10.
                 </p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-4">
                 <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
                   <ShieldCheck className="text-primary h-5 w-5" />
                   <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
@@ -210,6 +375,15 @@ export function AllocatorPage({
                     {formatCurrency(budget)}
                   </p>
                 </div>
+                <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
+                  <Target className="text-primary h-5 w-5" />
+                  <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
+                    Max ballot
+                  </p>
+                  <p className="text-foreground mt-1 text-3xl font-semibold">
+                    {maxProjects}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -219,8 +393,9 @@ export function AllocatorPage({
                   Quick-start controls
                 </CardTitle>
                 <CardDescription className="leading-6">
-                  V1 keeps the choices tight: one preset, weighted baskets, one
-                  budget, one share link.
+                  Presets are only a starting point now. The recommendation
+                  updates when you change basket weights, criterion weights, or
+                  the maximum number of projects.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -259,61 +434,113 @@ export function AllocatorPage({
 
                 <Separator />
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-3">
                     <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                      Theme emphasis
+                      Budget
                     </p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-full"
-                      onClick={() => updateUrlState({ selectedThemes: [] })}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Reset
-                    </Button>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={budget}
+                      onChange={(event) =>
+                        updateUrlState({
+                          budget: parseBudgetValue(event.target.value),
+                        })
+                      }
+                    />
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {themeDefinitions.map((theme) => {
-                      const active = selectedThemes.includes(theme.key);
-
-                      return (
-                        <button
-                          key={theme.key}
-                          type="button"
-                          onClick={() => toggleTheme(theme.key)}
-                          className={`rounded-full border px-4 py-2 text-sm transition ${
-                            active
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border/70 bg-background/70 text-foreground hover:border-primary/40"
-                          }`}
-                        >
-                          {theme.shortLabel}
-                        </button>
-                      );
-                    })}
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                      Maximum projects
+                    </p>
+                    <Input
+                      type="number"
+                      min="1"
+                      max={projects.length}
+                      step="1"
+                      value={maxProjects}
+                      onChange={(event) =>
+                        updateUrlState({
+                          maxProjects: parseMaxProjectsValue(
+                            event.target.value,
+                            projects.length,
+                          ),
+                        })
+                      }
+                    />
                   </div>
                 </div>
 
                 <Separator />
 
-                <div className="space-y-3">
-                  <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                    Budget
-                  </p>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={budget}
-                    onChange={(event) =>
-                      updateUrlState({
-                        budget: parseBudgetValue(event.target.value),
-                      })
-                    }
-                  />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                        Criterion weights
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-sm">
+                        How much each scoring dimension matters overall.
+                      </p>
+                    </div>
+                    <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
+                  </div>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {criterionDefinitions.map((criterion) => (
+                      <WeightStepper
+                        key={criterion.key}
+                        label={criterion.label}
+                        description={`Current multiplier for ${criterion.label.toLowerCase()}.`}
+                        value={criterionMultipliers[criterion.key]}
+                        onDecrease={() =>
+                          updateCriterionMultiplier(criterion.key, -1)
+                        }
+                        onIncrease={() =>
+                          updateCriterionMultiplier(criterion.key, 1)
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                        Theme weights
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-sm">
+                        Raise or lower specific baskets directly. This covers
+                        cases like “tooling, vote for 10”.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-full"
+                      onClick={resetCustomization}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Reset custom weights
+                    </Button>
+                  </div>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {themeDefinitions.map((theme) => (
+                      <WeightStepper
+                        key={theme.key}
+                        label={theme.label}
+                        description={theme.blurb}
+                        value={themeMultipliers[theme.key]}
+                        onDecrease={() => updateThemeMultiplier(theme.key, -1)}
+                        onIncrease={() => updateThemeMultiplier(theme.key, 1)}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 <Button
@@ -333,6 +560,7 @@ export function AllocatorPage({
           <AllocationSummary
             projects={filteredRecommendations}
             budget={budget}
+            maxProjects={maxProjects}
           />
           <Card className="border-border/80 bg-card/88 shadow-sm">
             <CardHeader className="gap-3">
@@ -340,8 +568,9 @@ export function AllocatorPage({
                 Current emphasis
               </CardTitle>
               <CardDescription className="leading-6">
-                The preset sets the base logic. Selected baskets are added as a
-                visible weight multiplier, not a hard filter.
+                The preset still seeds the model, but the final recommendation
+                is now shaped by explicit user multipliers and a ballot-size
+                cap.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -354,23 +583,55 @@ export function AllocatorPage({
                     "Balanced"}
                 </p>
               </div>
+              <div className="border-border/70 bg-secondary/25 rounded-3xl border p-4">
+                <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                  Maximum projects
+                </p>
+                <p className="text-foreground mt-2 text-xl font-semibold">
+                  {maxProjects}
+                </p>
+              </div>
               <div className="space-y-3">
                 <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                  Emphasized baskets
+                  Criteria with custom weight
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {selectedThemes.length > 0 ? (
-                    selectedThemes.map((themeKey) => (
+                  {activeCriterionWeights.length > 0 ? (
+                    activeCriterionWeights.map((criterion) => (
                       <Badge
-                        key={themeKey}
+                        key={criterion.key}
                         className="bg-primary text-primary-foreground rounded-full"
                       >
-                        {themeDefinitionByKey[themeKey].label}
+                        {criterion.shortLabel}{" "}
+                        {formatMultiplier(criterionMultipliers[criterion.key])}
                       </Badge>
                     ))
                   ) : (
                     <p className="text-muted-foreground text-sm">
-                      No extra basket emphasis applied.
+                      No custom criterion multipliers applied.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-3">
+                <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                  Themes with custom weight
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {activeThemeWeights.length > 0 ? (
+                    activeThemeWeights.map((theme) => (
+                      <Badge
+                        key={theme.key}
+                        variant="secondary"
+                        className="rounded-full"
+                      >
+                        {theme.shortLabel}{" "}
+                        {formatMultiplier(themeMultipliers[theme.key])}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      No custom theme multipliers applied.
                     </p>
                   )}
                 </div>

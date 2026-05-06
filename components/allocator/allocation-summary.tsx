@@ -15,6 +15,7 @@ import type { ProjectRecommendation } from "@/lib/types";
 type AllocationSummaryProps = {
   projects: ProjectRecommendation[];
   budget: number;
+  maxProjects: number;
 };
 
 function formatCurrency(value: number) {
@@ -32,8 +33,12 @@ function formatPercent(value: number) {
 export function AllocationSummary({
   projects,
   budget,
+  maxProjects,
 }: AllocationSummaryProps) {
-  const topProjects = projects.slice(0, 5);
+  const includedProjects = projects.filter(
+    (project) => project.allocationPercent > 0,
+  );
+  const topProjects = includedProjects.slice(0, 5);
   const topShare = topProjects.reduce(
     (total, project) => total + project.allocationPercent,
     0,
@@ -66,10 +71,18 @@ export function AllocationSummary({
         <div className="grid gap-3 md:grid-cols-3">
           <div className="border-border/80 bg-background/80 rounded-2xl border p-4">
             <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-              Projects shown
+              Projects funded
             </p>
             <p className="text-foreground mt-2 text-3xl font-semibold">
-              {projects.length}
+              {includedProjects.length}
+            </p>
+          </div>
+          <div className="border-border/80 bg-background/80 rounded-2xl border p-4">
+            <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+              Ballot cap
+            </p>
+            <p className="text-foreground mt-2 text-3xl font-semibold">
+              {maxProjects}
             </p>
           </div>
           <div className="border-border/80 bg-background/80 rounded-2xl border p-4">
@@ -78,16 +91,6 @@ export function AllocationSummary({
             </p>
             <p className="text-foreground mt-2 text-3xl font-semibold">
               {formatPercent(topShare)}
-            </p>
-          </div>
-          <div className="border-border/80 bg-background/80 rounded-2xl border p-4">
-            <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-              Highest single allocation
-            </p>
-            <p className="text-foreground mt-2 text-3xl font-semibold">
-              {topProjects[0]
-                ? formatPercent(topProjects[0].allocationPercent)
-                : "0.0%"}
             </p>
           </div>
         </div>

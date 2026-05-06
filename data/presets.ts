@@ -6,7 +6,7 @@ import {
   themeKeys,
 } from "@/lib/types";
 
-function createCriterionWeights(
+export function createCriterionWeights(
   overrides: Partial<CriterionWeights>,
 ): CriterionWeights {
   return Object.assign(
@@ -17,7 +17,9 @@ function createCriterionWeights(
   );
 }
 
-function createThemeWeights(overrides: Partial<ThemeWeights>): ThemeWeights {
+export function createThemeWeights(
+  overrides: Partial<ThemeWeights>,
+): ThemeWeights {
   return Object.assign(
     Object.fromEntries(themeKeys.map((key) => [key, 1])) as ThemeWeights,
     overrides,
@@ -25,8 +27,13 @@ function createThemeWeights(overrides: Partial<ThemeWeights>): ThemeWeights {
 }
 
 export const defaultBudget = 100;
+export const defaultMaxProjects = 10;
 export const defaultPresetKey = "balanced";
-export const themeSelectionBoost = 0.25;
+export const weightStep = 0.25;
+export const minUserWeightMultiplier = 0.25;
+export const maxUserWeightMultiplier = 2;
+export const unitCriterionMultipliers = createCriterionWeights({});
+export const unitThemeMultipliers = createThemeWeights({});
 
 export const presets: AllocationPreset[] = [
   {

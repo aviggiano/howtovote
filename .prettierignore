@@ -1,0 +1,6 @@
+.next
+node_modules
+coverage
+data/curation.generated.ts
+AGENTS.md
+CLAUDE.md

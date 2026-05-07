@@ -23,6 +23,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   criterionDefinitions,
   type ProjectRecommendation,
   type QfEstimateContext,
@@ -57,6 +63,10 @@ function formatInteger(value: number) {
 
 function formatPercent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatConfidence(value: number) {
+  return `${Math.round(value * 100)}%`;
 }
 
 function scoreTone(score: number) {
@@ -117,9 +127,6 @@ export function ProjectTable({
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "allocationPercent", desc: true },
   ]);
-  const [expandedProjectUrl, setExpandedProjectUrl] = React.useState<
-    string | null
-  >(null);
   const projectCapUsd =
     qfEstimateContext.matchingPoolUsd * qfEstimateContext.maxPerProjectRatio;
   const scoreMax = getMaxValue(projects, (project) => project.score);
@@ -150,6 +157,9 @@ export function ProjectTable({
       header: "Project",
       cell: ({ row }) => {
         const project = row.original;
+        const secondaryThemes = project.curation.themeBaskets.filter(
+          (themeKey) => themeKey !== project.curation.primaryCategory,
+        );
 
         return (
           <div className="space-y-2">
@@ -170,7 +180,13 @@ export function ProjectTable({
               <ExternalLink className="text-muted-foreground mt-1 h-4 w-4" />
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {project.curation.themeBaskets.map((themeKey) => (
+              <Badge className="rounded-full">
+                {
+                  themeDefinitionByKey[project.curation.primaryCategory]
+                    .shortLabel
+                }
+              </Badge>
+              {secondaryThemes.map((themeKey) => (
                 <Badge
                   key={themeKey}
                   variant="outline"
@@ -205,8 +221,24 @@ export function ProjectTable({
                 {criterion.shortLabel} {project.curation[criterion.key]}
               </Badge>
             ))}
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Badge
+                    variant="outline"
+                    className="bg-background/80 cursor-help rounded-full"
+                  />
+                }
+              >
+                Confidence
+              </TooltipTrigger>
+              <TooltipContent>
+                Confidence score:{" "}
+                {formatConfidence(project.curation.confidenceScore)}
+              </TooltipContent>
+            </Tooltip>
             <Badge variant="outline" className="bg-background/80 rounded-full">
-              {project.curation.source === "manual" ? "Manual" : "Generated"}
+              {project.curation.source === "manual" ? "Reviewed" : "Generated"}
             </Badge>
           </div>
         );
@@ -291,29 +323,6 @@ export function ProjectTable({
           <span className="text-muted-foreground">-</span>
         ),
     },
-    {
-      id: "details",
-      header: "",
-      cell: ({ row }) => {
-        const project = row.original;
-        const expanded = expandedProjectUrl === project.projectUrl;
-
-        return (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="rounded-full"
-            onClick={() =>
-              setExpandedProjectUrl(expanded ? null : project.projectUrl)
-            }
-          >
-            {expanded ? "Hide" : "Why"}
-          </Button>
-        );
-      },
-      enableSorting: false,
-    },
   ];
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -327,67 +336,67 @@ export function ProjectTable({
   });
 
   return (
-    <Card className="border-border/80 bg-card/90 shadow-sm">
-      <CardHeader className="gap-3 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-2">
-          <CardTitle className="font-heading text-foreground text-2xl">
-            {OFFICIAL_PROJECT_SHEET_TITLE}
-          </CardTitle>
-          <p className="text-muted-foreground max-w-2xl text-sm leading-6">
-            Sort the allocator output, compare it against live round traction,
-            and cross-check everything against the official sheet source.
-          </p>
-        </div>
-        <div className="relative w-full md:w-80">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-          <Input
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Search by project, owner, or theme"
-            className="pl-9"
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="border-border/80 rounded-3xl border">
-          <div className="hidden overflow-x-auto md:block">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                          <Button
-                            variant="ghost"
-                            className="-ml-3 h-9 rounded-full px-3 text-left"
-                            onClick={header.column.getToggleSortingHandler()}
-                          >
-                            {flexRender(
+    <TooltipProvider>
+      <Card className="border-border/80 bg-card/90 shadow-sm">
+        <CardHeader className="gap-3 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-2">
+            <CardTitle className="font-heading text-foreground text-2xl">
+              {OFFICIAL_PROJECT_SHEET_TITLE}
+            </CardTitle>
+            <p className="text-muted-foreground max-w-2xl text-sm leading-6">
+              Sort the allocator output, compare it against live round traction,
+              and cross-check everything against the official sheet source.
+            </p>
+          </div>
+          <div className="relative w-full md:w-80">
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+            <Input
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder="Search by project, owner, or theme"
+              className="pl-9"
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="border-border/80 rounded-3xl border">
+            <div className="hidden overflow-x-auto md:block">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                            <Button
+                              variant="ghost"
+                              className="-ml-3 h-9 rounded-full px-3 text-left"
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : null}
+                            </Button>
+                          ) : (
+                            flexRender(
                               header.column.columnDef.header,
                               header.getContext(),
-                            )}
-                            {header.column.getIsSorted() === "asc" ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : header.column.getIsSorted() === "desc" ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : null}
-                          </Button>
-                        ) : (
-                          flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )
-                        )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <React.Fragment key={row.id}>
-                    <TableRow className="align-top">
+                            )
+                          )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} className="align-top">
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
                           {flexRender(
@@ -397,271 +406,223 @@ export function ProjectTable({
                         </TableCell>
                       ))}
                     </TableRow>
-                    {expandedProjectUrl === row.original.projectUrl ? (
-                      <TableRow className="bg-secondary/20">
-                        <TableCell colSpan={columns.length}>
-                          <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-                            <div className="space-y-3">
-                              <p className="text-muted-foreground text-sm leading-6">
-                                {row.original.descriptionSummary}
-                              </p>
-                              {row.original.qfEstimate ? (
-                                <div className="grid gap-3 sm:grid-cols-3">
-                                  <div className="border-border/70 bg-background/70 rounded-2xl border p-4">
-                                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.18em] uppercase">
-                                      QF Raised
-                                    </p>
-                                    <p className="text-foreground mt-2 text-lg font-semibold">
-                                      {formatCurrency(
-                                        row.original.qfEstimate.raisedUsd,
-                                      )}
-                                    </p>
-                                  </div>
-                                  <div className="border-border/70 bg-background/70 rounded-2xl border p-4">
-                                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.18em] uppercase">
-                                      QF Donors
-                                    </p>
-                                    <p className="text-foreground mt-2 text-lg font-semibold">
-                                      {formatInteger(
-                                        row.original.qfEstimate.donorCount,
-                                      )}
-                                    </p>
-                                  </div>
-                                  <div className="border-border/70 bg-background/70 rounded-2xl border p-4">
-                                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.18em] uppercase">
-                                      QF Est. Match
-                                    </p>
-                                    <p className="text-foreground mt-2 text-lg font-semibold">
-                                      {formatCurrency(
-                                        row.original.qfEstimate
-                                          .estimatedMatchUsd,
-                                      )}
-                                    </p>
-                                  </div>
-                                </div>
-                              ) : null}
-                              <p className="border-border/70 bg-background/70 text-muted-foreground rounded-2xl border p-4 text-sm leading-6">
-                                {row.original.curation.notes}
-                              </p>
-                            </div>
-                            <div className="border-border/70 bg-background/70 rounded-2xl border p-4">
-                              <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                                Weighted breakdown
-                              </p>
-                              <div className="mt-4 space-y-3">
-                                {criterionDefinitions.map((criterion) => (
-                                  <div
-                                    key={criterion.key}
-                                    className="space-y-1.5"
-                                  >
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-muted-foreground">
-                                        {criterion.label}
-                                      </span>
-                                      <span className="text-foreground font-medium">
-                                        {row.original.breakdown[
-                                          criterion.key
-                                        ].toFixed(2)}
-                                      </span>
-                                    </div>
-                                    <div className="bg-secondary h-2 overflow-hidden rounded-full">
-                                      <div
-                                        className="bg-primary h-full rounded-full"
-                                        style={{
-                                          width: `${(row.original.breakdown[criterion.key] / 7.5) * 100}%`,
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-          <div className="space-y-3 p-3 md:hidden">
-            {projects.map((project) => {
-              const expanded = expandedProjectUrl === project.projectUrl;
+            <div className="space-y-3 p-3 md:hidden">
+              {projects.map((project) => {
+                const secondaryThemes = project.curation.themeBaskets.filter(
+                  (themeKey) => themeKey !== project.curation.primaryCategory,
+                );
 
-              return (
-                <div
-                  key={project.projectUrl}
-                  className="border-border/70 bg-background/80 rounded-3xl border p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-2">
-                      <a
-                        href={project.projectUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-foreground hover:text-primary font-semibold"
-                      >
-                        {project.title}
-                      </a>
-                      <p className="text-muted-foreground text-sm">
-                        {project.ownerName}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-foreground font-semibold">
-                        {formatCurrency(project.allocationAmount)}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {formatPercent(project.allocationPercent)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {project.curation.themeBaskets.map((themeKey) => (
-                      <Badge
-                        key={themeKey}
-                        variant="outline"
-                        className="rounded-full"
-                      >
-                        {themeDefinitionByKey[themeKey].shortLabel}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="bg-secondary mt-4 h-2 overflow-hidden rounded-full">
-                    <div
-                      className="bg-primary h-full rounded-full"
-                      style={{ width: `${project.allocationPercent * 100}%` }}
-                    />
-                  </div>
-                  {project.qfEstimate ? (
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                      <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
-                        <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
-                          Raised
-                        </p>
-                        <p className="text-foreground mt-2 text-sm font-semibold">
-                          {formatCurrency(project.qfEstimate.raisedUsd)}
-                        </p>
-                      </div>
-                      <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
-                        <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
-                          Donors
-                        </p>
-                        <p className="text-foreground mt-2 text-sm font-semibold">
-                          {formatInteger(project.qfEstimate.donorCount)}
-                        </p>
-                      </div>
-                      <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
-                        <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
-                          Est. Match
-                        </p>
-                        <p className="text-foreground mt-2 text-sm font-semibold">
-                          {formatCurrency(project.qfEstimate.estimatedMatchUsd)}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="mt-3 rounded-full"
-                    onClick={() =>
-                      setExpandedProjectUrl(
-                        expanded ? null : project.projectUrl,
-                      )
-                    }
+                return (
+                  <div
+                    key={project.projectUrl}
+                    className="border-border/70 bg-background/80 rounded-3xl border p-4"
                   >
-                    {expanded ? "Hide rationale" : "Show rationale"}
-                  </Button>
-                  {expanded ? (
-                    <div className="border-border/70 bg-secondary/20 text-muted-foreground mt-3 rounded-2xl border p-4 text-sm leading-6">
-                      {project.curation.notes}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-2">
+                        <a
+                          href={project.projectUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-foreground hover:text-primary font-semibold"
+                        >
+                          {project.title}
+                        </a>
+                        <p className="text-muted-foreground text-sm">
+                          {project.ownerName}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-foreground font-semibold">
+                          {formatCurrency(project.allocationAmount)}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {formatPercent(project.allocationPercent)}
+                        </p>
+                      </div>
                     </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
-          <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
-            <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-              Curated Signals Methodology
-            </p>
-            <p className="text-muted-foreground mt-3 text-sm leading-6">
-              Project metadata comes from the{" "}
-              <a
-                href={OFFICIAL_PROJECT_SHEET_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
-              >
-                official project sheet
-              </a>
-              . Raw curation signals are scored from 1 to 5. If a project has a
-              manual curation entry, that manual score wins. Otherwise the app
-              generates a baseline from sheet metadata and category tags.
-            </p>
-            <p className="text-muted-foreground mt-3 text-sm leading-6">
-              <span className="text-foreground font-medium">
-                Score formula.
-              </span>{" "}
-              Final project score = sum of the five signal scores after preset
-              weights and your criterion multipliers are applied, then
-              multiplied by the average of the project&apos;s matched theme
-              weights. Allocation = project score divided by the sum of the top{" "}
-              N project scores, then multiplied by budget.
-            </p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">
-              {criterionDefinitions.map((criterion) => (
-                <div
-                  key={criterion.key}
-                  className="border-border/70 bg-card/80 rounded-2xl border p-3"
-                >
-                  <p className="text-foreground font-semibold">
-                    {criterion.shortLabel}
-                  </p>
-                  <p className="text-muted-foreground mt-1 text-xs font-semibold tracking-[0.16em] uppercase">
-                    {criterion.label}
-                  </p>
-                  <p className="text-muted-foreground mt-3 text-sm leading-6">
-                    {criterion.description}
-                  </p>
-                  <p className="text-muted-foreground mt-3 text-xs leading-5">
-                    {criterion.calculation}
-                  </p>
-                </div>
-              ))}
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      <Badge className="rounded-full">
+                        {
+                          themeDefinitionByKey[project.curation.primaryCategory]
+                            .shortLabel
+                        }
+                      </Badge>
+                      {secondaryThemes.map((themeKey) => (
+                        <Badge
+                          key={themeKey}
+                          variant="outline"
+                          className="rounded-full"
+                        >
+                          {themeDefinitionByKey[themeKey].shortLabel}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {criterionDefinitions.map((criterion) => (
+                        <Badge
+                          key={criterion.key}
+                          variant="secondary"
+                          className={cn(
+                            "border-border/50 bg-secondary/60 rounded-full border",
+                            scoreTone(project.curation[criterion.key]),
+                          )}
+                        >
+                          {criterion.shortLabel}{" "}
+                          {project.curation[criterion.key]}
+                        </Badge>
+                      ))}
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Badge
+                              variant="outline"
+                              className="bg-background/80 cursor-help rounded-full"
+                            />
+                          }
+                        >
+                          Confidence
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Confidence score:{" "}
+                          {formatConfidence(project.curation.confidenceScore)}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="bg-secondary mt-4 h-2 overflow-hidden rounded-full">
+                      <div
+                        className="bg-primary h-full rounded-full"
+                        style={{ width: `${project.allocationPercent * 100}%` }}
+                      />
+                    </div>
+                    {project.qfEstimate ? (
+                      <div className="mt-4 grid grid-cols-3 gap-2">
+                        <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
+                          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
+                            Raised
+                          </p>
+                          <p className="text-foreground mt-2 text-sm font-semibold">
+                            {formatCurrency(project.qfEstimate.raisedUsd)}
+                          </p>
+                        </div>
+                        <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
+                          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
+                            Donors
+                          </p>
+                          <p className="text-foreground mt-2 text-sm font-semibold">
+                            {formatInteger(project.qfEstimate.donorCount)}
+                          </p>
+                        </div>
+                        <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
+                          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
+                            Est. Match
+                          </p>
+                          <p className="text-foreground mt-2 text-sm font-semibold">
+                            {formatCurrency(
+                              project.qfEstimate.estimatedMatchUsd,
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </div>
+          <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
+            <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
+              <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                Classification Methodology
+              </p>
+              <p className="text-muted-foreground mt-3 text-sm leading-6">
+                Project metadata comes from the{" "}
+                <a
+                  href={OFFICIAL_PROJECT_SHEET_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
+                >
+                  official project sheet
+                </a>
+                . Each current participant is reviewed against that sheet
+                context and its linked website. The curation layer assigns one
+                primary category, up to one secondary theme, five signal scores
+                from 1 to 5, and a confidence score from 0 to 1.
+              </p>
+              <p className="text-muted-foreground mt-3 text-sm leading-6">
+                Confidence is higher when the project website and sheet summary
+                explicitly point to the same fit. It is lower when the site is
+                sparse, generic, or missing, in which case the classification
+                relies more heavily on the sheet summary and linked public
+                artifacts such as GitHub.
+              </p>
+              <p className="text-muted-foreground mt-3 text-sm leading-6">
+                <span className="text-foreground font-medium">
+                  Score formula.
+                </span>{" "}
+                Final project score = sum of the five signal scores after preset
+                weights and your criterion multipliers are applied, then
+                multiplied by the average of the project&apos;s matched theme
+                weights. Allocation = project score divided by the sum of the
+                top N project scores, then multiplied by budget.
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">
+                {criterionDefinitions.map((criterion) => (
+                  <div
+                    key={criterion.key}
+                    className="border-border/70 bg-card/80 rounded-2xl border p-3"
+                  >
+                    <p className="text-foreground font-semibold">
+                      {criterion.shortLabel}
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-xs font-semibold tracking-[0.16em] uppercase">
+                      {criterion.label}
+                    </p>
+                    <p className="text-muted-foreground mt-3 text-sm leading-6">
+                      {criterion.description}
+                    </p>
+                    <p className="text-muted-foreground mt-3 text-xs leading-5">
+                      {criterion.calculation}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
-            <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-              QF Estimate Methodology
-            </p>
-            <p className="text-muted-foreground mt-3 text-sm leading-6">
-              <span className="text-foreground font-medium">QF Raised</span> and{" "}
-              <span className="text-foreground font-medium">QF Donors</span> use
-              public {qfEstimateContext.roundName} donations that meet the
-              round&apos;s $1 minimum, aggregated by donor wallet.{" "}
-              <span className="text-foreground font-medium">QF Est. Match</span>{" "}
-              applies a standard QF subsidy estimate to those public donations,
-              normalizes to the current{" "}
-              {formatCurrency(qfEstimateContext.matchingPoolUsd)} matching pool,
-              and enforces the round&apos;s{" "}
-              {formatPercent(qfEstimateContext.maxPerProjectRatio)} per-project
-              cap ({formatCurrency(projectCapUsd)}). Data refreshes roughly
-              every {qfEstimateContext.refreshIntervalMinutes} minutes. It does
-              not model Giveth&apos;s non-public COCM clustering, ETHSecurity
-              badge 4x donor weights, Passport or first-touch checks, or
-              post-round fraud review.
-            </p>
+            <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
+              <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                QF Estimate Methodology
+              </p>
+              <p className="text-muted-foreground mt-3 text-sm leading-6">
+                <span className="text-foreground font-medium">QF Raised</span>{" "}
+                and{" "}
+                <span className="text-foreground font-medium">QF Donors</span>{" "}
+                use public {qfEstimateContext.roundName} donations that meet the
+                round&apos;s $1 minimum, aggregated by donor wallet.{" "}
+                <span className="text-foreground font-medium">
+                  QF Est. Match
+                </span>{" "}
+                applies a standard QF subsidy estimate to those public
+                donations, normalizes to the current{" "}
+                {formatCurrency(qfEstimateContext.matchingPoolUsd)} matching
+                pool, and enforces the round&apos;s{" "}
+                {formatPercent(qfEstimateContext.maxPerProjectRatio)}{" "}
+                per-project cap ({formatCurrency(projectCapUsd)}). Data
+                refreshes roughly every{" "}
+                {qfEstimateContext.refreshIntervalMinutes} minutes. It does not
+                model Giveth&apos;s non-public COCM clustering, ETHSecurity
+                badge 4x donor weights, Passport or first-touch checks, or
+                post-round fraud review.
+              </p>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }

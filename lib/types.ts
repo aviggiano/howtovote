@@ -74,12 +74,14 @@ export type SheetProject = {
 };
 
 export type ProjectCuration = {
+  primaryCategory: ThemeKey;
   themeBaskets: ThemeKey[];
   trackRecord: ProjectScore;
   underfundedness: ProjectScore;
   ecosystemLeverage: ProjectScore;
   publicGoodsOpenness: ProjectScore;
   executionClarity: ProjectScore;
+  confidenceScore: number;
   notes: string;
   source: "generated" | "manual";
 };
@@ -126,7 +128,7 @@ export const criterionDefinitions: CriterionDefinition[] = [
     description:
       "How much evidence there is that the team has already shipped useful work and stayed active.",
     calculation:
-      "Generated baseline uses updates count plus spreadsheet language such as recent work, widely used, and years of history.",
+      "Reviewed from project website and sheet context, looking for evidence of shipped work, adoption, continuity, and time in market.",
   },
   {
     key: "underfundedness",
@@ -135,7 +137,7 @@ export const criterionDefinitions: CriterionDefinition[] = [
     description:
       "A proxy for how much marginal funding is likely to matter right now.",
     calculation:
-      "Generated baseline boosts nonprofits, research, education-style work, and small-team language found in the sheet.",
+      "Reviewed from project structure and public positioning, with higher scores for smaller public-goods efforts and lower scores for clearly commercial organizations.",
   },
   {
     key: "ecosystemLeverage",
@@ -144,7 +146,7 @@ export const criterionDefinitions: CriterionDefinition[] = [
     description:
       "How broadly the project compounds value across Ethereum builders, infra, and security posture.",
     calculation:
-      "Generated baseline boosts tooling, core/client security, infrastructure, and developer-enabling language from the sheet.",
+      "Reviewed from the project’s surface area across Ethereum security, infra, tooling, coordination, and user protection.",
   },
   {
     key: "publicGoodsOpenness",
@@ -153,7 +155,7 @@ export const criterionDefinitions: CriterionDefinition[] = [
     description:
       "How clearly the project behaves like an open public good rather than a closed private good.",
     calculation:
-      "Generated baseline boosts GitHub presence, public-goods category tags, and open-source language in the sheet.",
+      "Reviewed from open-source posture, public-good language, nonprofit/community structure, and the visibility of public artifacts.",
   },
   {
     key: "executionClarity",
@@ -162,6 +164,6 @@ export const criterionDefinitions: CriterionDefinition[] = [
     description:
       "How clearly the project explains what it plans to do and how donated funds will be used.",
     calculation:
-      "Generated baseline boosts explicit donation-use language, roadmap references, deliverables, and recent updates.",
+      "Reviewed from how specifically the project explains its product, work program, roadmap, or requested funding use.",
   },
 ];

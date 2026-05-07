@@ -171,12 +171,14 @@ export function buildHeuristicCuration(project: SheetProject): ProjectCuration {
     .join(", ");
 
   return {
+    primaryCategory: themeBaskets[0] ?? "tooling-fuzzing-formal-verification",
     themeBaskets,
     trackRecord: clampScore(trackRecord),
     underfundedness: clampScore(underfundedness),
     ecosystemLeverage: clampScore(ecosystemLeverage),
     publicGoodsOpenness: clampScore(publicGoodsOpenness),
     executionClarity: clampScore(executionClarity),
+    confidenceScore: 0.35,
     notes: `Generated baseline from spreadsheet metadata. Primary fit: ${themeLabels}. Replace with manual review notes for production allocations.`,
     source: "generated",
   };

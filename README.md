@@ -25,8 +25,15 @@ npm run dev
 
 The Google Sheet remains the source of live metadata.
 
-Subjective scoring is stored in `data/curation.generated.ts`, which is currently
-generated from heuristics using the public sheet.
+Subjective scoring is stored in `data/curation.generated.ts`.
+
+The generator now reviews each project against the public sheet plus its linked
+website, then produces:
+
+- one primary category
+- up to one secondary theme
+- five signal scores from `1` to `5`
+- a confidence score from `0` to `1`
 
 To refresh that local curation file:
 

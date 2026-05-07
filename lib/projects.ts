@@ -1,15 +1,39 @@
 import { generatedProjectCurations } from "@/data/curation.generated";
+import { getEthereumSecurityQfEstimates } from "@/lib/fetch-qf-estimates";
 import { buildHeuristicCuration } from "@/lib/curation";
 import { getSheetProjects } from "@/lib/fetch-sheet";
-import type { AllocationProject } from "@/lib/types";
+import type { AllocationProject, QfEstimateContext } from "@/lib/types";
+
+type AllocationDataset = {
+  projects: AllocationProject[];
+  qfEstimateContext: QfEstimateContext;
+};
+
+function getProjectSlug(projectUrl: string) {
+  return new URL(projectUrl).pathname.replace(/^\/project\//, "");
+}
+
+export async function getAllocationDataset(): Promise<AllocationDataset> {
+  const [projects, qfEstimates] = await Promise.all([
+    getSheetProjects(),
+    getEthereumSecurityQfEstimates(),
+  ]);
+
+  return {
+    projects: projects.map((project) => ({
+      ...project,
+      curation:
+        generatedProjectCurations[project.projectUrl] ??
+        buildHeuristicCuration(project),
+      qfEstimate:
+        qfEstimates.estimatesBySlug.get(getProjectSlug(project.projectUrl)) ??
+        null,
+    })),
+    qfEstimateContext: qfEstimates.context,
+  };
+}
 
 export async function getAllocationProjects(): Promise<AllocationProject[]> {
-  const projects = await getSheetProjects();
-
-  return projects.map((project) => ({
-    ...project,
-    curation:
-      generatedProjectCurations[project.projectUrl] ??
-      buildHeuristicCuration(project),
-  }));
+  const { projects } = await getAllocationDataset();
+  return projects;
 }

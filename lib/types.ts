@@ -39,6 +39,25 @@ export type SocialLink = {
   type: string;
 };
 
+export type ProjectQfEstimate = {
+  projectId: number;
+  projectSlug: string;
+  raisedUsd: number;
+  donorCount: number;
+  donationCount: number;
+  estimatedMatchUsd: number;
+};
+
+export type QfEstimateContext = {
+  roundName: string;
+  roundSlug: string;
+  matchingPoolUsd: number;
+  matchingPoolTokenAmount: number;
+  matchingPoolTokenSymbol: string;
+  maxPerProjectRatio: number;
+  refreshIntervalMinutes: number;
+};
+
 export type SheetProject = {
   title: string;
   projectUrl: string;
@@ -65,6 +84,7 @@ export type ProjectCuration = {
 
 export type AllocationProject = SheetProject & {
   curation: ProjectCuration;
+  qfEstimate: ProjectQfEstimate | null;
 };
 
 export type CriterionWeights = Record<CriterionKey, number>;

@@ -1,5 +1,5 @@
 import { AllocatorPage } from "@/components/allocator-page";
-import { getAllocationProjects } from "@/lib/projects";
+import { getAllocationDataset } from "@/lib/projects";
 import {
   parseBudgetParam,
   parseCriterionMultipliersParam,
@@ -17,7 +17,7 @@ function getSingleParam(value: string | string[] | undefined) {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  const projects = await getAllocationProjects();
+  const { projects, qfEstimateContext } = await getAllocationDataset();
   const resolvedSearchParams = (await searchParams) ?? {};
   const budget = parseBudgetParam(getSingleParam(resolvedSearchParams.budget));
   const maxProjects = parseMaxProjectsParam(
@@ -41,6 +41,7 @@ export default async function Home({ searchParams }: HomeProps) {
       initialPresetKey={presetKey}
       initialCriterionMultipliers={criterionMultipliers}
       initialThemeMultipliers={themeMultipliers}
+      qfEstimateContext={qfEstimateContext}
     />
   );
 }

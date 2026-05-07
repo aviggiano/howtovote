@@ -22,7 +22,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { criterionDefinitions, type ProjectRecommendation } from "@/lib/types";
+import {
+  criterionDefinitions,
+  type ProjectRecommendation,
+  type QfEstimateContext,
+} from "@/lib/types";
 import { themeDefinitionByKey } from "@/data/themes";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +34,7 @@ type ProjectTableProps = {
   projects: ProjectRecommendation[];
   query: string;
   onQueryChange: (value: string) => void;
+  qfEstimateContext: QfEstimateContext;
 };
 
 function formatCurrency(value: number) {
@@ -37,6 +42,12 @@ function formatCurrency(value: number) {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: value >= 100 ? 0 : 2,
+  }).format(value);
+}
+
+function formatInteger(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
@@ -58,6 +69,7 @@ export function ProjectTable({
   projects,
   query,
   onQueryChange,
+  qfEstimateContext,
 }: ProjectTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "allocationPercent", desc: true },
@@ -65,6 +77,8 @@ export function ProjectTable({
   const [expandedProjectUrl, setExpandedProjectUrl] = React.useState<
     string | null
   >(null);
+  const projectCapUsd =
+    qfEstimateContext.matchingPoolUsd * qfEstimateContext.maxPerProjectRatio;
 
   const columns: ColumnDef<ProjectRecommendation>[] = [
     {
@@ -159,6 +173,39 @@ export function ProjectTable({
       cell: ({ row }) => formatCurrency(row.original.allocationAmount),
     },
     {
+      accessorFn: (project) => project.qfEstimate?.raisedUsd ?? 0,
+      id: "qfRaisedUsd",
+      header: "QF Raised",
+      cell: ({ row }) =>
+        row.original.qfEstimate ? (
+          formatCurrency(row.original.qfEstimate.raisedUsd)
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
+      accessorFn: (project) => project.qfEstimate?.donorCount ?? 0,
+      id: "qfDonorCount",
+      header: "QF Donors",
+      cell: ({ row }) =>
+        row.original.qfEstimate ? (
+          formatInteger(row.original.qfEstimate.donorCount)
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
+      accessorFn: (project) => project.qfEstimate?.estimatedMatchUsd ?? 0,
+      id: "qfEstimatedMatchUsd",
+      header: "QF Est. Match",
+      cell: ({ row }) =>
+        row.original.qfEstimate ? (
+          formatCurrency(row.original.qfEstimate.estimatedMatchUsd)
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
       id: "details",
       header: "",
       cell: ({ row }) => {
@@ -201,8 +248,8 @@ export function ProjectTable({
             Full Recommendation Table
           </CardTitle>
           <p className="text-muted-foreground max-w-2xl text-sm leading-6">
-            Sort by the recommendation itself, inspect the underlying scores,
-            and open the rationale for each project.
+            Sort by the recommendation itself, compare it against the current
+            round traction, and open the rationale for each project.
           </p>
         </div>
         <div className="relative w-full md:w-80">
@@ -272,6 +319,41 @@ export function ProjectTable({
                               <p className="text-muted-foreground text-sm leading-6">
                                 {row.original.descriptionSummary}
                               </p>
+                              {row.original.qfEstimate ? (
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                  <div className="border-border/70 bg-background/70 rounded-2xl border p-4">
+                                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.18em] uppercase">
+                                      QF Raised
+                                    </p>
+                                    <p className="text-foreground mt-2 text-lg font-semibold">
+                                      {formatCurrency(
+                                        row.original.qfEstimate.raisedUsd,
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="border-border/70 bg-background/70 rounded-2xl border p-4">
+                                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.18em] uppercase">
+                                      QF Donors
+                                    </p>
+                                    <p className="text-foreground mt-2 text-lg font-semibold">
+                                      {formatInteger(
+                                        row.original.qfEstimate.donorCount,
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="border-border/70 bg-background/70 rounded-2xl border p-4">
+                                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.18em] uppercase">
+                                      QF Est. Match
+                                    </p>
+                                    <p className="text-foreground mt-2 text-lg font-semibold">
+                                      {formatCurrency(
+                                        row.original.qfEstimate
+                                          .estimatedMatchUsd,
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : null}
                               <p className="border-border/70 bg-background/70 text-muted-foreground rounded-2xl border p-4 text-sm leading-6">
                                 {row.original.curation.notes}
                               </p>
@@ -367,6 +449,34 @@ export function ProjectTable({
                       style={{ width: `${project.allocationPercent * 100}%` }}
                     />
                   </div>
+                  {project.qfEstimate ? (
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
+                        <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
+                          Raised
+                        </p>
+                        <p className="text-foreground mt-2 text-sm font-semibold">
+                          {formatCurrency(project.qfEstimate.raisedUsd)}
+                        </p>
+                      </div>
+                      <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
+                        <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
+                          Donors
+                        </p>
+                        <p className="text-foreground mt-2 text-sm font-semibold">
+                          {formatInteger(project.qfEstimate.donorCount)}
+                        </p>
+                      </div>
+                      <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
+                        <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
+                          Est. Match
+                        </p>
+                        <p className="text-foreground mt-2 text-sm font-semibold">
+                          {formatCurrency(project.qfEstimate.estimatedMatchUsd)}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
                   <Button
                     type="button"
                     variant="ghost"
@@ -389,6 +499,28 @@ export function ProjectTable({
               );
             })}
           </div>
+        </div>
+        <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
+          <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+            QF Estimate Methodology
+          </p>
+          <p className="text-muted-foreground mt-3 text-sm leading-6">
+            <span className="text-foreground font-medium">QF Raised</span> and{" "}
+            <span className="text-foreground font-medium">QF Donors</span> use
+            public {qfEstimateContext.roundName} donations that meet the
+            round&apos;s $1 minimum, aggregated by donor wallet.{" "}
+            <span className="text-foreground font-medium">QF Est. Match</span>{" "}
+            applies a standard QF subsidy estimate to those public donations,
+            normalizes to the current{" "}
+            {formatCurrency(qfEstimateContext.matchingPoolUsd)} matching pool,
+            and enforces the round&apos;s{" "}
+            {formatPercent(qfEstimateContext.maxPerProjectRatio)} per-project
+            cap ({formatCurrency(projectCapUsd)}). Data refreshes roughly every{" "}
+            {qfEstimateContext.refreshIntervalMinutes} minutes. It does not
+            model Giveth&apos;s non-public COCM clustering, ETHSecurity badge 4x
+            donor weights, Passport or first-touch checks, or post-round fraud
+            review.
+          </p>
         </div>
       </CardContent>
     </Card>

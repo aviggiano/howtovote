@@ -44,6 +44,7 @@ import {
   type AllocationProject,
   type CriterionKey,
   type CriterionWeights,
+  type QfEstimateContext,
   type ThemeKey,
   type ThemeWeights,
 } from "@/lib/types";
@@ -59,6 +60,7 @@ type AllocatorPageProps = {
   initialPresetKey: string;
   initialCriterionMultipliers: CriterionWeights;
   initialThemeMultipliers: ThemeWeights;
+  qfEstimateContext: QfEstimateContext;
 };
 
 type WeightStepperProps = {
@@ -185,6 +187,7 @@ export function AllocatorPage({
   initialPresetKey,
   initialCriterionMultipliers,
   initialThemeMultipliers,
+  qfEstimateContext,
 }: AllocatorPageProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -660,6 +663,7 @@ export function AllocatorPage({
           projects={filteredRecommendations}
           query={query}
           onQueryChange={setQuery}
+          qfEstimateContext={qfEstimateContext}
         />
       </div>
     </main>

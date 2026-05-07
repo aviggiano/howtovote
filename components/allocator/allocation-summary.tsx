@@ -38,11 +38,7 @@ export function AllocationSummary({
   const includedProjects = projects.filter(
     (project) => project.allocationPercent > 0,
   );
-  const topProjects = includedProjects.slice(0, 5);
-  const topShare = topProjects.reduce(
-    (total, project) => total + project.allocationPercent,
-    0,
-  );
+  const leadProject = includedProjects[0] ?? null;
 
   return (
     <Card className="surface-panel border-primary/15 shadow-primary/5 shadow-lg">
@@ -53,8 +49,8 @@ export function AllocationSummary({
               Recommended Allocation
             </CardTitle>
             <CardDescription className="mt-2 max-w-2xl text-sm leading-6">
-              The table stays fully explorable, but this top slice is the
-              fastest path from preset to donation plan.
+              This is the full current ballot in rank order, not just a fixed
+              top-five slice.
             </CardDescription>
           </div>
           <div className="border-primary/15 bg-background/70 rounded-2xl border px-4 py-3 text-right">
@@ -87,10 +83,12 @@ export function AllocationSummary({
           </div>
           <div className="border-border/80 bg-background/80 rounded-2xl border p-4">
             <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-              Top 5 share
+              Largest allocation
             </p>
             <p className="text-foreground mt-2 text-3xl font-semibold">
-              {formatPercent(topShare)}
+              {leadProject
+                ? formatPercent(leadProject.allocationPercent)
+                : "0%"}
             </p>
           </div>
         </div>
@@ -98,7 +96,7 @@ export function AllocationSummary({
         <Separator />
 
         <div className="space-y-4">
-          {topProjects.map((project) => (
+          {includedProjects.map((project) => (
             <div key={project.projectUrl} className="space-y-3">
               <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">

@@ -32,6 +32,8 @@ export type CriterionDefinition = {
   key: CriterionKey;
   label: string;
   shortLabel: string;
+  description: string;
+  calculation: string;
 };
 
 export type SocialLink = {
@@ -117,21 +119,49 @@ export type AllocationState = {
 };
 
 export const criterionDefinitions: CriterionDefinition[] = [
-  { key: "trackRecord", label: "Track Record", shortLabel: "Record" },
-  { key: "underfundedness", label: "Underfundedness", shortLabel: "Need" },
+  {
+    key: "trackRecord",
+    label: "Track Record",
+    shortLabel: "Record",
+    description:
+      "How much evidence there is that the team has already shipped useful work and stayed active.",
+    calculation:
+      "Generated baseline uses updates count plus spreadsheet language such as recent work, widely used, and years of history.",
+  },
+  {
+    key: "underfundedness",
+    label: "Underfundedness",
+    shortLabel: "Need",
+    description:
+      "A proxy for how much marginal funding is likely to matter right now.",
+    calculation:
+      "Generated baseline boosts nonprofits, research, education-style work, and small-team language found in the sheet.",
+  },
   {
     key: "ecosystemLeverage",
     label: "Ecosystem Leverage",
     shortLabel: "Leverage",
+    description:
+      "How broadly the project compounds value across Ethereum builders, infra, and security posture.",
+    calculation:
+      "Generated baseline boosts tooling, core/client security, infrastructure, and developer-enabling language from the sheet.",
   },
   {
     key: "publicGoodsOpenness",
     label: "Public Goods Openness",
     shortLabel: "Openness",
+    description:
+      "How clearly the project behaves like an open public good rather than a closed private good.",
+    calculation:
+      "Generated baseline boosts GitHub presence, public-goods category tags, and open-source language in the sheet.",
   },
   {
     key: "executionClarity",
     label: "Execution Clarity",
     shortLabel: "Clarity",
+    description:
+      "How clearly the project explains what it plans to do and how donated funds will be used.",
+    calculation:
+      "Generated baseline boosts explicit donation-use language, roadmap references, deliverables, and recent updates.",
   },
 ];

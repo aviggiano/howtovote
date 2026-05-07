@@ -1,9 +1,9 @@
 import Papa from "papaparse";
 import { z } from "zod";
+import { OFFICIAL_PROJECT_SHEET_CSV_URL } from "@/data/allocator-metadata";
 import type { SheetProject, SocialLink } from "@/lib/types";
 
-export const SHEET_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/1o3UYyn6aqiFnoK5NvnnMXIHM4Op4Rup7HNGxGM1lL2U/export?format=csv&gid=1388538582";
+export const SHEET_CSV_URL = OFFICIAL_PROJECT_SHEET_CSV_URL;
 
 const normalizedProjectSchema = z.object({
   title: z.string().min(1),

@@ -4,6 +4,7 @@ import { startTransition, useDeferredValue, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CircleDollarSign,
+  ExternalLink,
   Link2,
   Minus,
   RefreshCw,
@@ -25,7 +26,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import {
+  OFFICIAL_PROJECT_SHEET_URL,
+  getGivethRoundUrl,
+} from "@/data/allocator-metadata";
 import {
   defaultBudget,
   defaultMaxProjects,
@@ -131,6 +135,48 @@ function adjustWeight<T extends string>(
   };
 }
 
+type DataChipLinkProps = {
+  href: string;
+  children: string;
+  primary?: boolean;
+};
+
+function DataChipLink({ href, children, primary = false }: DataChipLinkProps) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px ${
+        primary
+          ? "bg-primary text-primary-foreground border-primary/80"
+          : "border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background"
+      }`}
+    >
+      {children}
+      <ExternalLink className="h-3.5 w-3.5" />
+    </a>
+  );
+}
+
+type DataChipButtonProps = {
+  children: string;
+  onClick: () => void;
+};
+
+function DataChipButton({ children, onClick }: DataChipButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
+    >
+      {children}
+      <Link2 className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
 function WeightStepper({
   label,
   description,
@@ -221,16 +267,15 @@ export function AllocatorPage({
     buildSearchHaystack(project).includes(deferredQuery.trim().toLowerCase()),
   );
 
-  const allocatedProjects = filteredRecommendations.filter(
+  const allocatedProjects = recommendations.filter(
     (project) => project.allocationPercent > 0,
   );
   const topThemes = Array.from(
     new Set(
-      allocatedProjects
-        .slice(0, Math.max(5, maxProjects))
-        .flatMap((project) => project.curation.themeBaskets),
+      allocatedProjects.flatMap((project) => project.curation.themeBaskets),
     ),
   );
+  const roundUrl = getGivethRoundUrl(qfEstimateContext.roundSlug);
 
   const activeCriterionWeights = criterionDefinitions.filter(
     (criterion) => criterionMultipliers[criterion.key] !== 1,
@@ -320,24 +365,18 @@ export function AllocatorPage({
     <main className="min-h-screen">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
         <section className="surface-panel border-primary/15 shadow-primary/5 overflow-hidden rounded-[2rem] border shadow-xl">
-          <div className="grid gap-8 px-6 py-8 md:px-8 lg:grid-cols-[1.25fr_0.85fr] lg:px-10 lg:py-10">
+          <div className="space-y-8 px-6 py-8 md:px-8 lg:px-10 lg:py-10">
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-primary/90 text-primary-foreground rounded-full px-3 py-1">
+                <DataChipLink href={roundUrl} primary>
                   Ethereum Security Round
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="bg-background/70 rounded-full"
-                >
-                  Live sheet data
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="bg-background/70 rounded-full"
-                >
-                  Shareable allocator state
-                </Badge>
+                </DataChipLink>
+                <DataChipLink href={OFFICIAL_PROJECT_SHEET_URL}>
+                  Official project sheet
+                </DataChipLink>
+                <DataChipButton onClick={copyShareLink}>
+                  {copied ? "Copied share URL" : "Share allocator state"}
+                </DataChipButton>
               </div>
               <div className="space-y-4">
                 <h1 className="font-heading text-foreground text-4xl leading-tight font-semibold text-balance sm:text-5xl lg:text-6xl">
@@ -350,7 +389,7 @@ export function AllocatorPage({
                   projects like 10.
                 </p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
                   <ShieldCheck className="text-primary h-5 w-5" />
                   <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
@@ -391,169 +430,168 @@ export function AllocatorPage({
             </div>
 
             <Card className="border-border/80 bg-background/78 shadow-none">
-              <CardHeader className="space-y-3">
+              <CardHeader className="gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <CardTitle className="font-heading text-2xl">
                   Quick-start controls
                 </CardTitle>
-                <CardDescription className="leading-6">
-                  Presets are only a starting point now. The recommendation
-                  updates when you change basket weights, criterion weights, or
-                  the maximum number of projects.
+                <CardDescription className="max-w-3xl leading-6">
+                  Presets are only a starting point. The recommendation updates
+                  when you change budget, ballot size, signal weights, or theme
+                  weights. Project metadata comes from the official sheet and
+                  round stats refresh from Giveth roughly every{" "}
+                  {qfEstimateContext.refreshIntervalMinutes} minutes.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                    Preset
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {presets.map((preset) => {
-                      const active = preset.key === presetKey;
+              <CardContent className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
+                <div className="space-y-6">
+                  <div className="border-border/70 bg-background/70 rounded-3xl border p-5">
+                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                      Preset
+                    </p>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                      {presets.map((preset) => {
+                        const active = preset.key === presetKey;
 
-                      return (
-                        <button
-                          key={preset.key}
-                          type="button"
-                          onClick={() =>
-                            updateUrlState({ presetKey: preset.key })
+                        return (
+                          <button
+                            key={preset.key}
+                            type="button"
+                            onClick={() =>
+                              updateUrlState({ presetKey: preset.key })
+                            }
+                            className={`rounded-3xl border px-4 py-4 text-left transition ${
+                              active
+                                ? "border-primary bg-primary/10 shadow-sm"
+                                : "border-border/70 bg-background/70 hover:border-primary/40"
+                            }`}
+                          >
+                            <p className="text-foreground font-semibold">
+                              {preset.label}
+                            </p>
+                            <p className="text-muted-foreground mt-2 text-sm leading-6">
+                              {preset.description}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="border-border/70 bg-background/70 rounded-3xl border p-5">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                      <div className="space-y-3">
+                        <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                          Budget
+                        </p>
+                        <Input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={budget}
+                          onChange={(event) =>
+                            updateUrlState({
+                              budget: parseBudgetValue(event.target.value),
+                            })
                           }
-                          className={`rounded-3xl border px-4 py-4 text-left transition ${
-                            active
-                              ? "border-primary bg-primary/10 shadow-sm"
-                              : "border-border/70 bg-background/70 hover:border-primary/40"
-                          }`}
-                        >
-                          <p className="text-foreground font-semibold">
-                            {preset.label}
-                          </p>
-                          <p className="text-muted-foreground mt-2 text-sm leading-6">
-                            {preset.description}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-3">
-                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                      Budget
-                    </p>
-                    <Input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={budget}
-                      onChange={(event) =>
-                        updateUrlState({
-                          budget: parseBudgetValue(event.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                      Maximum projects
-                    </p>
-                    <Input
-                      type="number"
-                      min="1"
-                      max={projects.length}
-                      step="1"
-                      value={maxProjects}
-                      onChange={(event) =>
-                        updateUrlState({
-                          maxProjects: parseMaxProjectsValue(
-                            event.target.value,
-                            projects.length,
-                          ),
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                        Criterion weights
-                      </p>
-                      <p className="text-muted-foreground mt-1 text-sm">
-                        How much each scoring dimension matters overall.
-                      </p>
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                          Maximum projects
+                        </p>
+                        <Input
+                          type="number"
+                          min="1"
+                          max={projects.length}
+                          step="1"
+                          value={maxProjects}
+                          onChange={(event) =>
+                            updateUrlState({
+                              maxProjects: parseMaxProjectsValue(
+                                event.target.value,
+                                projects.length,
+                              ),
+                            })
+                          }
+                        />
+                      </div>
                     </div>
-                    <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
-                  </div>
-                  <div className="grid gap-3 lg:grid-cols-2">
-                    {criterionDefinitions.map((criterion) => (
-                      <WeightStepper
-                        key={criterion.key}
-                        label={criterion.label}
-                        description={`Current multiplier for ${criterion.label.toLowerCase()}.`}
-                        value={criterionMultipliers[criterion.key]}
-                        onDecrease={() =>
-                          updateCriterionMultiplier(criterion.key, -1)
-                        }
-                        onIncrease={() =>
-                          updateCriterionMultiplier(criterion.key, 1)
-                        }
-                      />
-                    ))}
+                    <p className="text-muted-foreground mt-4 text-sm leading-6">
+                      Share state is encoded directly in the URL. The chip above
+                      copies the current allocator configuration.
+                    </p>
                   </div>
                 </div>
 
-                <Separator />
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                        Theme weights
-                      </p>
-                      <p className="text-muted-foreground mt-1 text-sm">
-                        Raise or lower specific baskets directly. This covers
-                        cases like “tooling, vote for 10”.
-                      </p>
+                <div className="space-y-6">
+                  <div className="border-border/70 bg-background/70 rounded-3xl border p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                          Criterion weights
+                        </p>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                          How much each scoring dimension matters overall.
+                        </p>
+                      </div>
+                      <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-full"
-                      onClick={resetCustomization}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Reset custom weights
-                    </Button>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      {criterionDefinitions.map((criterion) => (
+                        <WeightStepper
+                          key={criterion.key}
+                          label={criterion.label}
+                          description={`Current multiplier for ${criterion.label.toLowerCase()}.`}
+                          value={criterionMultipliers[criterion.key]}
+                          onDecrease={() =>
+                            updateCriterionMultiplier(criterion.key, -1)
+                          }
+                          onIncrease={() =>
+                            updateCriterionMultiplier(criterion.key, 1)
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid gap-3 lg:grid-cols-2">
-                    {themeDefinitions.map((theme) => (
-                      <WeightStepper
-                        key={theme.key}
-                        label={theme.label}
-                        description={theme.blurb}
-                        value={themeMultipliers[theme.key]}
-                        onDecrease={() => updateThemeMultiplier(theme.key, -1)}
-                        onIncrease={() => updateThemeMultiplier(theme.key, 1)}
-                      />
-                    ))}
+
+                  <div className="border-border/70 bg-background/70 rounded-3xl border p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+                          Theme weights
+                        </p>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                          Raise or lower specific baskets directly. This covers
+                          cases like “tooling, vote for 10”.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full"
+                        onClick={resetCustomization}
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Reset custom weights
+                      </Button>
+                    </div>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      {themeDefinitions.map((theme) => (
+                        <WeightStepper
+                          key={theme.key}
+                          label={theme.label}
+                          description={theme.blurb}
+                          value={themeMultipliers[theme.key]}
+                          onDecrease={() =>
+                            updateThemeMultiplier(theme.key, -1)
+                          }
+                          onIncrease={() => updateThemeMultiplier(theme.key, 1)}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
-
-                <Button
-                  type="button"
-                  className="w-full rounded-full"
-                  onClick={copyShareLink}
-                >
-                  <Link2 className="mr-2 h-4 w-4" />
-                  {copied ? "Copied share link" : "Copy share link"}
-                </Button>
               </CardContent>
             </Card>
           </div>
@@ -561,7 +599,7 @@ export function AllocatorPage({
 
         <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <AllocationSummary
-            projects={filteredRecommendations}
+            projects={recommendations}
             budget={budget}
             maxProjects={maxProjects}
           />

@@ -27,6 +27,10 @@ import {
   type ProjectRecommendation,
   type QfEstimateContext,
 } from "@/lib/types";
+import {
+  OFFICIAL_PROJECT_SHEET_TITLE,
+  OFFICIAL_PROJECT_SHEET_URL,
+} from "@/data/allocator-metadata";
 import { themeDefinitionByKey } from "@/data/themes";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +69,45 @@ function scoreTone(score: number) {
   return "text-muted-foreground";
 }
 
+function getMaxValue(
+  projects: ProjectRecommendation[],
+  selector: (project: ProjectRecommendation) => number,
+) {
+  return projects.reduce((max, project) => Math.max(max, selector(project)), 0);
+}
+
+type NumericBarCellProps = {
+  value: number;
+  max: number;
+  primary: string;
+  secondary?: string;
+};
+
+function NumericBarCell({
+  value,
+  max,
+  primary,
+  secondary,
+}: NumericBarCellProps) {
+  const width = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const visibleWidth = value > 0 ? Math.max(width, 8) : 0;
+
+  return (
+    <div className="border-border/70 bg-background/80 relative min-w-24 overflow-hidden rounded-2xl border px-3 py-2 text-right">
+      <div
+        className="bg-primary/14 absolute inset-y-1 left-1 rounded-xl"
+        style={{ width: `${visibleWidth}%` }}
+      />
+      <div className="relative">
+        <p className="text-foreground font-medium">{primary}</p>
+        {secondary ? (
+          <p className="text-muted-foreground mt-0.5 text-xs">{secondary}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function ProjectTable({
   projects,
   query,
@@ -79,6 +122,27 @@ export function ProjectTable({
   >(null);
   const projectCapUsd =
     qfEstimateContext.matchingPoolUsd * qfEstimateContext.maxPerProjectRatio;
+  const scoreMax = getMaxValue(projects, (project) => project.score);
+  const allocationPercentMax = getMaxValue(
+    projects,
+    (project) => project.allocationPercent,
+  );
+  const allocationAmountMax = getMaxValue(
+    projects,
+    (project) => project.allocationAmount,
+  );
+  const qfRaisedMax = getMaxValue(
+    projects,
+    (project) => project.qfEstimate?.raisedUsd ?? 0,
+  );
+  const qfDonorMax = getMaxValue(
+    projects,
+    (project) => project.qfEstimate?.donorCount ?? 0,
+  );
+  const qfMatchMax = getMaxValue(
+    projects,
+    (project) => project.qfEstimate?.estimatedMatchUsd ?? 0,
+  );
 
   const columns: ColumnDef<ProjectRecommendation>[] = [
     {
@@ -122,7 +186,7 @@ export function ProjectTable({
     },
     {
       id: "metrics",
-      header: "Curated Signals",
+      header: "Signals (1-5)",
       cell: ({ row }) => {
         const project = row.original;
 
@@ -132,6 +196,7 @@ export function ProjectTable({
               <Badge
                 key={criterion.key}
                 variant="secondary"
+                title={`${criterion.label}. ${criterion.description}`}
                 className={cn(
                   "border-border/50 bg-secondary/60 rounded-full border",
                   scoreTone(project.curation[criterion.key]),
@@ -140,6 +205,9 @@ export function ProjectTable({
                 {criterion.shortLabel} {project.curation[criterion.key]}
               </Badge>
             ))}
+            <Badge variant="outline" className="bg-background/80 rounded-full">
+              {project.curation.source === "manual" ? "Manual" : "Generated"}
+            </Badge>
           </div>
         );
       },
@@ -148,29 +216,35 @@ export function ProjectTable({
     {
       accessorKey: "score",
       header: "Score",
-      cell: ({ row }) => row.original.score.toFixed(2),
+      cell: ({ row }) => (
+        <NumericBarCell
+          value={row.original.score}
+          max={scoreMax}
+          primary={row.original.score.toFixed(2)}
+        />
+      ),
     },
     {
       accessorKey: "allocationPercent",
       header: "Allocation",
       cell: ({ row }) => (
-        <div className="space-y-1">
-          <p className="text-foreground font-medium">
-            {formatPercent(row.original.allocationPercent)}
-          </p>
-          <div className="bg-secondary h-2 overflow-hidden rounded-full">
-            <div
-              className="bg-primary h-full rounded-full"
-              style={{ width: `${row.original.allocationPercent * 100}%` }}
-            />
-          </div>
-        </div>
+        <NumericBarCell
+          value={row.original.allocationPercent}
+          max={allocationPercentMax}
+          primary={formatPercent(row.original.allocationPercent)}
+        />
       ),
     },
     {
       accessorKey: "allocationAmount",
       header: "Amount",
-      cell: ({ row }) => formatCurrency(row.original.allocationAmount),
+      cell: ({ row }) => (
+        <NumericBarCell
+          value={row.original.allocationAmount}
+          max={allocationAmountMax}
+          primary={formatCurrency(row.original.allocationAmount)}
+        />
+      ),
     },
     {
       accessorFn: (project) => project.qfEstimate?.raisedUsd ?? 0,
@@ -178,7 +252,11 @@ export function ProjectTable({
       header: "QF Raised",
       cell: ({ row }) =>
         row.original.qfEstimate ? (
-          formatCurrency(row.original.qfEstimate.raisedUsd)
+          <NumericBarCell
+            value={row.original.qfEstimate.raisedUsd}
+            max={qfRaisedMax}
+            primary={formatCurrency(row.original.qfEstimate.raisedUsd)}
+          />
         ) : (
           <span className="text-muted-foreground">-</span>
         ),
@@ -189,7 +267,11 @@ export function ProjectTable({
       header: "QF Donors",
       cell: ({ row }) =>
         row.original.qfEstimate ? (
-          formatInteger(row.original.qfEstimate.donorCount)
+          <NumericBarCell
+            value={row.original.qfEstimate.donorCount}
+            max={qfDonorMax}
+            primary={formatInteger(row.original.qfEstimate.donorCount)}
+          />
         ) : (
           <span className="text-muted-foreground">-</span>
         ),
@@ -200,7 +282,11 @@ export function ProjectTable({
       header: "QF Est. Match",
       cell: ({ row }) =>
         row.original.qfEstimate ? (
-          formatCurrency(row.original.qfEstimate.estimatedMatchUsd)
+          <NumericBarCell
+            value={row.original.qfEstimate.estimatedMatchUsd}
+            max={qfMatchMax}
+            primary={formatCurrency(row.original.qfEstimate.estimatedMatchUsd)}
+          />
         ) : (
           <span className="text-muted-foreground">-</span>
         ),
@@ -245,11 +331,11 @@ export function ProjectTable({
       <CardHeader className="gap-3 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <CardTitle className="font-heading text-foreground text-2xl">
-            Full Recommendation Table
+            {OFFICIAL_PROJECT_SHEET_TITLE}
           </CardTitle>
           <p className="text-muted-foreground max-w-2xl text-sm leading-6">
-            Sort by the recommendation itself, compare it against the current
-            round traction, and open the rationale for each project.
+            Sort the allocator output, compare it against live round traction,
+            and cross-check everything against the official sheet source.
           </p>
         </div>
         <div className="relative w-full md:w-80">
@@ -500,27 +586,80 @@ export function ProjectTable({
             })}
           </div>
         </div>
-        <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
-          <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-            QF Estimate Methodology
-          </p>
-          <p className="text-muted-foreground mt-3 text-sm leading-6">
-            <span className="text-foreground font-medium">QF Raised</span> and{" "}
-            <span className="text-foreground font-medium">QF Donors</span> use
-            public {qfEstimateContext.roundName} donations that meet the
-            round&apos;s $1 minimum, aggregated by donor wallet.{" "}
-            <span className="text-foreground font-medium">QF Est. Match</span>{" "}
-            applies a standard QF subsidy estimate to those public donations,
-            normalizes to the current{" "}
-            {formatCurrency(qfEstimateContext.matchingPoolUsd)} matching pool,
-            and enforces the round&apos;s{" "}
-            {formatPercent(qfEstimateContext.maxPerProjectRatio)} per-project
-            cap ({formatCurrency(projectCapUsd)}). Data refreshes roughly every{" "}
-            {qfEstimateContext.refreshIntervalMinutes} minutes. It does not
-            model Giveth&apos;s non-public COCM clustering, ETHSecurity badge 4x
-            donor weights, Passport or first-touch checks, or post-round fraud
-            review.
-          </p>
+        <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
+          <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
+            <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+              Curated Signals Methodology
+            </p>
+            <p className="text-muted-foreground mt-3 text-sm leading-6">
+              Project metadata comes from the{" "}
+              <a
+                href={OFFICIAL_PROJECT_SHEET_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
+              >
+                official project sheet
+              </a>
+              . Raw curation signals are scored from 1 to 5. If a project has a
+              manual curation entry, that manual score wins. Otherwise the app
+              generates a baseline from sheet metadata and category tags.
+            </p>
+            <p className="text-muted-foreground mt-3 text-sm leading-6">
+              <span className="text-foreground font-medium">
+                Score formula.
+              </span>{" "}
+              Final project score = sum of the five signal scores after preset
+              weights and your criterion multipliers are applied, then
+              multiplied by the average of the project&apos;s matched theme
+              weights. Allocation = project score divided by the sum of the top{" "}
+              N project scores, then multiplied by budget.
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">
+              {criterionDefinitions.map((criterion) => (
+                <div
+                  key={criterion.key}
+                  className="border-border/70 bg-card/80 rounded-2xl border p-3"
+                >
+                  <p className="text-foreground font-semibold">
+                    {criterion.shortLabel}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs font-semibold tracking-[0.16em] uppercase">
+                    {criterion.label}
+                  </p>
+                  <p className="text-muted-foreground mt-3 text-sm leading-6">
+                    {criterion.description}
+                  </p>
+                  <p className="text-muted-foreground mt-3 text-xs leading-5">
+                    {criterion.calculation}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
+            <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
+              QF Estimate Methodology
+            </p>
+            <p className="text-muted-foreground mt-3 text-sm leading-6">
+              <span className="text-foreground font-medium">QF Raised</span> and{" "}
+              <span className="text-foreground font-medium">QF Donors</span> use
+              public {qfEstimateContext.roundName} donations that meet the
+              round&apos;s $1 minimum, aggregated by donor wallet.{" "}
+              <span className="text-foreground font-medium">QF Est. Match</span>{" "}
+              applies a standard QF subsidy estimate to those public donations,
+              normalizes to the current{" "}
+              {formatCurrency(qfEstimateContext.matchingPoolUsd)} matching pool,
+              and enforces the round&apos;s{" "}
+              {formatPercent(qfEstimateContext.maxPerProjectRatio)} per-project
+              cap ({formatCurrency(projectCapUsd)}). Data refreshes roughly
+              every {qfEstimateContext.refreshIntervalMinutes} minutes. It does
+              not model Giveth&apos;s non-public COCM clustering, ETHSecurity
+              badge 4x donor weights, Passport or first-touch checks, or
+              post-round fraud review.
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -37,9 +37,7 @@ import {
   GIVETH_COCM_ANNOUNCEMENT_URL,
   GIVETH_GRAPHQL_URL,
   GIVETH_QF_DOCS_URL,
-  OFFICIAL_PROJECT_SHEET_TITLE,
   OFFICIAL_PROJECT_SHEET_URL,
-  PROJECT_SPREADSHEET_LABEL,
   getGivethRoundUrl,
 } from "@/data/allocator-metadata";
 import { themeDefinitionByKey } from "@/data/themes";
@@ -50,6 +48,33 @@ type ProjectTableProps = {
   query: string;
   onQueryChange: (value: string) => void;
   qfEstimateContext: QfEstimateContext;
+};
+
+type ReferenceChipLinkProps = {
+  href: string;
+  label: string;
+};
+
+type ProjectIdentityProps = {
+  project: ProjectRecommendation;
+};
+
+type NumericBarCellProps = {
+  value: number;
+  max: number;
+  primary: string;
+  secondary?: string;
+};
+
+type ScoreCellProps = {
+  max: number;
+  project: ProjectRecommendation;
+};
+
+type MethodologyPanelProps = {
+  title: string;
+  summary: string;
+  children: React.ReactNode;
 };
 
 function getProjectInitial(project: ProjectRecommendation) {
@@ -102,28 +127,19 @@ function getMaxValue(
   return projects.reduce((max, project) => Math.max(max, selector(project)), 0);
 }
 
-type ReferenceChipLinkProps = {
-  href: string;
-  label: string;
-};
-
 function ReferenceChipLink({ href, label }: ReferenceChipLinkProps) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
+      className="border-border/75 bg-background/78 text-foreground hover:border-primary/30 hover:bg-background inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
     >
       {label}
       <ExternalLink className="h-3.5 w-3.5" />
     </a>
   );
 }
-
-type ProjectIdentityProps = {
-  project: ProjectRecommendation;
-};
 
 function ProjectIdentity({ project }: ProjectIdentityProps) {
   return (
@@ -141,11 +157,11 @@ function ProjectIdentity({ project }: ProjectIdentityProps) {
               src={project.imageUrl}
               alt=""
               loading="lazy"
-              className="border-border/70 h-11 w-11 shrink-0 rounded-2xl border object-cover"
+              className="border-border/75 h-11 w-11 shrink-0 rounded-2xl border object-cover"
             />
           </>
         ) : (
-          <div className="bg-secondary text-secondary-foreground flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold">
+          <div className="border-border/75 bg-secondary/45 text-secondary-foreground flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-sm font-semibold">
             {getProjectInitial(project)}
           </div>
         )}
@@ -175,13 +191,6 @@ function ProjectIdentity({ project }: ProjectIdentityProps) {
   );
 }
 
-type NumericBarCellProps = {
-  value: number;
-  max: number;
-  primary: string;
-  secondary?: string;
-};
-
 function NumericBarCell({
   value,
   max,
@@ -192,9 +201,9 @@ function NumericBarCell({
   const visibleWidth = value > 0 ? Math.max(width, 8) : 0;
 
   return (
-    <div className="border-border/70 bg-background/80 relative min-w-[4.75rem] overflow-hidden rounded-2xl border px-2.5 py-2 text-right">
+    <div className="border-border/75 bg-background/82 relative min-w-[4.75rem] overflow-hidden rounded-2xl border px-2.5 py-2 text-right">
       <div
-        className="bg-primary/14 absolute inset-y-1 left-1 rounded-xl"
+        className="bg-primary/12 absolute inset-y-1 left-1 rounded-xl"
         style={{ width: `${visibleWidth}%` }}
       />
       <div className="relative">
@@ -206,11 +215,6 @@ function NumericBarCell({
     </div>
   );
 }
-
-type ScoreCellProps = {
-  max: number;
-  project: ProjectRecommendation;
-};
 
 function ScoreCell({ max, project }: ScoreCellProps) {
   return (
@@ -233,6 +237,22 @@ function ScoreCell({ max, project }: ScoreCellProps) {
         Confidence score: {formatConfidence(project.curation.confidenceScore)}
       </TooltipContent>
     </Tooltip>
+  );
+}
+
+function MethodologyPanel({ title, summary, children }: MethodologyPanelProps) {
+  return (
+    <details className="group border-border/75 bg-background/76 rounded-[1.5rem] border">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-4 py-4 [&::-webkit-details-marker]:hidden">
+        <div className="space-y-1.5">
+          <p className="eyebrow text-muted-foreground">Reference</p>
+          <p className="text-foreground text-base font-semibold">{title}</p>
+          <p className="text-muted-foreground text-sm leading-6">{summary}</p>
+        </div>
+        <ChevronDown className="text-muted-foreground mt-1 h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="border-border/70 border-t px-4 py-4">{children}</div>
+    </details>
   );
 }
 
@@ -308,14 +328,14 @@ export function ProjectTable({
         const project = row.original;
 
         return (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {criterionDefinitions.map((criterion) => (
               <Badge
                 key={criterion.key}
                 variant="secondary"
                 title={`${criterion.label}. ${criterion.description}`}
                 className={cn(
-                  "border-border/50 bg-secondary/60 justify-start rounded-full border px-2.5 text-[11px]",
+                  "border-border/50 bg-secondary/55 rounded-full border text-[11px]",
                   scoreTone(project.curation[criterion.key]),
                 )}
               >
@@ -399,296 +419,315 @@ export function ProjectTable({
     getSortedRowModel: getSortedRowModel(),
   });
 
+  const visibleRows = table.getRowModel().rows;
+
   return (
     <TooltipProvider>
-      <Card className="border-border/80 bg-card/90 shadow-sm">
-        <CardHeader className="gap-3 md:flex-row md:items-end md:justify-between">
+      <Card className="panel-border bg-card/90 shadow-[0_24px_70px_-54px_color-mix(in_oklab,var(--color-primary)_24%,transparent)]">
+        <CardHeader className="border-border/70 gap-4 border-b pb-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">
-            <CardTitle className="font-heading text-foreground text-2xl">
-              {OFFICIAL_PROJECT_SHEET_TITLE}
+            <p className="eyebrow text-muted-foreground">Project comparison</p>
+            <CardTitle className="text-foreground text-2xl font-semibold tracking-[-0.03em]">
+              Project comparison
             </CardTitle>
             <p className="text-muted-foreground max-w-2xl text-sm leading-6">
-              Sort the allocator output, compare it against live round traction,
-              and cross-check everything against the third-party synced round
-              spreadsheet.
+              Sort by score, allocation, or live traction, then open the source
+              links when a project clears your bar.
             </p>
           </div>
-          <div className="relative w-full md:w-80">
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-            <Input
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Search by project, owner, or theme"
-              className="pl-9"
-            />
+
+          <div className="flex w-full flex-col gap-3 md:w-auto md:items-end">
+            <div className="flex flex-wrap gap-2 md:justify-end">
+              <ReferenceChipLink
+                href={OFFICIAL_PROJECT_SHEET_URL}
+                label="Source sheet"
+              />
+              <ReferenceChipLink href={roundUrl} label="Round page" />
+            </div>
+            <div className="relative w-full md:w-80">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+              <Input
+                value={query}
+                onChange={(event) => onQueryChange(event.target.value)}
+                placeholder="Search projects or themes"
+                aria-label="Search projects or themes"
+                className="pl-9"
+              />
+            </div>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-6">
-          <div className="border-border/80 rounded-3xl border">
-            <div className="hidden md:block">
-              <Table className="table-fixed">
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                            <Button
-                              variant="ghost"
-                              className="-ml-3 h-9 rounded-full px-3 text-left"
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
+          <p className="text-muted-foreground text-sm">
+            Showing{" "}
+            <span className="text-foreground font-medium">
+              {visibleRows.length}
+            </span>{" "}
+            {visibleRows.length === 1 ? "project" : "projects"}.
+          </p>
+
+          <div className="border-border/80 bg-background/72 rounded-[1.6rem] border">
+            {visibleRows.length === 0 ? (
+              <div className="px-4 py-10 text-center">
+                <p className="text-foreground text-base font-semibold">
+                  No projects match that search.
+                </p>
+                <p className="text-muted-foreground mt-2 text-sm leading-6">
+                  Clear the query or adjust the current weights.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="hidden md:block">
+                  <Table className="table-fixed">
+                    <TableHeader>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => (
+                            <TableHead key={header.id}>
+                              {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                                <Button
+                                  variant="ghost"
+                                  className="-ml-3 h-9 rounded-full px-3 text-left"
+                                  onClick={header.column.getToggleSortingHandler()}
+                                >
+                                  {flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                                  {header.column.getIsSorted() === "asc" ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : header.column.getIsSorted() === "desc" ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : null}
+                                </Button>
+                              ) : (
+                                flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )
                               )}
-                              {header.column.getIsSorted() === "asc" ? (
-                                <ChevronUp className="h-4 w-4" />
-                              ) : header.column.getIsSorted() === "desc" ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : null}
-                            </Button>
-                          ) : (
-                            flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )
-                          )}
-                        </TableHead>
+                            </TableHead>
+                          ))}
+                        </TableRow>
                       ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} className="align-top">
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      {visibleRows.map((row) => (
+                        <TableRow key={row.id} className="align-top">
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
                       ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                    </TableBody>
+                  </Table>
+                </div>
 
-            <div className="space-y-3 p-3 md:hidden">
-              {projects.map((project) => {
-                const secondaryThemes = project.curation.themeBaskets.filter(
-                  (themeKey) => themeKey !== project.curation.primaryCategory,
-                );
+                <div className="space-y-3 p-3 md:hidden">
+                  {visibleRows.map((row) => {
+                    const project = row.original;
+                    const secondaryThemes =
+                      project.curation.themeBaskets.filter(
+                        (themeKey) =>
+                          themeKey !== project.curation.primaryCategory,
+                      );
 
-                return (
-                  <div
-                    key={project.projectUrl}
-                    className="border-border/70 bg-background/80 rounded-3xl border p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <ProjectIdentity project={project} />
-                      </div>
-                      <div className="text-right">
-                        <p className="text-foreground font-semibold">
-                          {formatPercent(project.allocationPercent)}
-                        </p>
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <button
-                                type="button"
-                                className="text-muted-foreground cursor-help text-sm"
-                              />
-                            }
-                          >
-                            Score {project.score.toFixed(2)}
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Confidence score:{" "}
-                            {formatConfidence(project.curation.confidenceScore)}
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <Badge className="rounded-full text-[11px]">
-                        {
-                          themeDefinitionByKey[project.curation.primaryCategory]
-                            .shortLabel
-                        }
-                      </Badge>
-                      {secondaryThemes.map((themeKey) => (
-                        <Badge
-                          key={themeKey}
-                          variant="outline"
-                          className="rounded-full text-[11px]"
-                        >
-                          {themeDefinitionByKey[themeKey].shortLabel}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="mt-3 flex flex-col gap-1.5">
-                      {criterionDefinitions.map((criterion) => (
-                        <Badge
-                          key={criterion.key}
-                          variant="secondary"
-                          className={cn(
-                            "border-border/50 bg-secondary/60 justify-start rounded-full border px-2.5 text-[11px]",
-                            scoreTone(project.curation[criterion.key]),
-                          )}
-                        >
-                          {criterion.shortLabel}{" "}
-                          {project.curation[criterion.key]}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="bg-secondary mt-4 h-2 overflow-hidden rounded-full">
+                    return (
                       <div
-                        className="bg-primary h-full rounded-full"
-                        style={{ width: `${project.allocationPercent * 100}%` }}
-                      />
-                    </div>
-                    {project.qfEstimate ? (
-                      <div className="mt-4 grid grid-cols-3 gap-2">
-                        <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
-                          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
-                            Raised
-                          </p>
-                          <p className="text-foreground mt-2 text-sm font-semibold">
-                            {formatCurrency(project.qfEstimate.raisedUsd)}
-                          </p>
+                        key={project.projectUrl}
+                        className="border-border/75 bg-background/82 rounded-[1.4rem] border p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <ProjectIdentity project={project} />
+                          </div>
+                          <div className="text-right">
+                            <p className="text-foreground font-semibold">
+                              {formatPercent(project.allocationPercent)}
+                            </p>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    type="button"
+                                    className="text-muted-foreground cursor-help text-sm"
+                                  />
+                                }
+                              >
+                                Score {project.score.toFixed(2)}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Confidence score:{" "}
+                                {formatConfidence(
+                                  project.curation.confidenceScore,
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                         </div>
-                        <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
-                          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
-                            Donors
-                          </p>
-                          <p className="text-foreground mt-2 text-sm font-semibold">
-                            {formatInteger(project.qfEstimate.donorCount)}
-                          </p>
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          <Badge className="rounded-full text-[11px]">
+                            {
+                              themeDefinitionByKey[
+                                project.curation.primaryCategory
+                              ].shortLabel
+                            }
+                          </Badge>
+                          {secondaryThemes.map((themeKey) => (
+                            <Badge
+                              key={themeKey}
+                              variant="outline"
+                              className="rounded-full text-[11px]"
+                            >
+                              {themeDefinitionByKey[themeKey].shortLabel}
+                            </Badge>
+                          ))}
                         </div>
-                        <div className="border-border/70 bg-secondary/20 rounded-2xl border p-3">
-                          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.16em] uppercase">
-                            Est. Match
-                          </p>
-                          <p className="text-foreground mt-2 text-sm font-semibold">
-                            {formatCurrency(
-                              project.qfEstimate.estimatedMatchUsd,
-                            )}
-                          </p>
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {criterionDefinitions.map((criterion) => (
+                            <Badge
+                              key={criterion.key}
+                              variant="secondary"
+                              className={cn(
+                                "border-border/50 bg-secondary/55 rounded-full border text-[11px]",
+                                scoreTone(project.curation[criterion.key]),
+                              )}
+                            >
+                              {criterion.shortLabel}{" "}
+                              {project.curation[criterion.key]}
+                            </Badge>
+                          ))}
                         </div>
+                        <div className="bg-secondary/65 mt-4 h-2 overflow-hidden rounded-full">
+                          <div
+                            className="bg-primary h-full rounded-full"
+                            style={{
+                              width: `${project.allocationPercent * 100}%`,
+                            }}
+                          />
+                        </div>
+                        {project.qfEstimate ? (
+                          <div className="mt-4 grid grid-cols-3 gap-2">
+                            <div className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3">
+                              <p className="eyebrow text-muted-foreground">
+                                Raised
+                              </p>
+                              <p className="text-foreground mt-2 text-sm font-semibold">
+                                {formatCurrency(project.qfEstimate.raisedUsd)}
+                              </p>
+                            </div>
+                            <div className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3">
+                              <p className="eyebrow text-muted-foreground">
+                                Donors
+                              </p>
+                              <p className="text-foreground mt-2 text-sm font-semibold">
+                                {formatInteger(project.qfEstimate.donorCount)}
+                              </p>
+                            </div>
+                            <div className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3">
+                              <p className="eyebrow text-muted-foreground">
+                                Est. match
+                              </p>
+                              <p className="text-foreground mt-2 text-sm font-semibold">
+                                {formatCurrency(
+                                  project.qfEstimate.estimatedMatchUsd,
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
-          <div className="space-y-4">
-            <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
-              <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                Classification Methodology
-              </p>
-              <p className="text-muted-foreground mt-3 text-sm leading-6">
-                Project metadata comes from the{" "}
-                <a
-                  href={OFFICIAL_PROJECT_SHEET_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
-                >
-                  {PROJECT_SPREADSHEET_LABEL}
-                </a>
-                , which is synced by a third party. Each current participant is
-                reviewed against that spreadsheet context and its linked
-                website. The curation layer assigns one primary category, up to
-                one secondary theme, five signal scores from 1 to 5, and a
-                confidence score from 0 to 1 that is surfaced on score hover.
-              </p>
-              <p className="text-muted-foreground mt-3 text-sm leading-6">
-                Confidence is higher when the project website and sheet summary
-                explicitly point to the same fit. It is lower when the site is
-                sparse, generic, or missing, in which case the classification
-                relies more heavily on the sheet summary and linked public
-                artifacts such as GitHub.
-              </p>
-              <p className="text-muted-foreground mt-3 text-sm leading-6">
-                <span className="text-foreground font-medium">
-                  Score formula.
-                </span>{" "}
-                Final project score = sum of the five signal scores after preset
-                weights and your criterion multipliers are applied, then
-                multiplied by the average of the project&apos;s matched theme
-                weights. Allocation = project score divided by the sum of the
-                top N project scores, surfaced as a share of a 100% ballot.
-              </p>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">
-                {criterionDefinitions.map((criterion) => (
-                  <div
-                    key={criterion.key}
-                    className="border-border/70 bg-card/80 rounded-2xl border p-3"
-                  >
-                    <p className="text-foreground font-semibold">
-                      {criterion.shortLabel}
-                    </p>
-                    <p className="text-muted-foreground mt-1 text-xs font-semibold tracking-[0.16em] uppercase">
-                      {criterion.label}
-                    </p>
-                    <p className="text-muted-foreground mt-3 text-sm leading-6">
-                      {criterion.description}
-                    </p>
-                    <p className="text-muted-foreground mt-3 text-xs leading-5">
-                      {criterion.calculation}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
-              <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                QF Estimate Methodology
-              </p>
-              <p className="text-muted-foreground mt-3 text-sm leading-6">
-                <span className="text-foreground font-medium">QF Raised</span>{" "}
-                and{" "}
-                <span className="text-foreground font-medium">QF Donors</span>{" "}
-                use public {qfEstimateContext.roundName} donations that meet the
-                round&apos;s $1 minimum, aggregated by donor wallet from
-                Giveth&apos;s public GraphQL data.{" "}
-                <span className="text-foreground font-medium">
-                  QF Est. Match
-                </span>{" "}
-                applies a standard QF subsidy estimate to those public
-                donations, normalizes to the current{" "}
-                {formatCurrency(qfEstimateContext.matchingPoolUsd)} matching
-                pool, and enforces the round&apos;s{" "}
-                {formatPercent(qfEstimateContext.maxPerProjectRatio)}{" "}
-                per-project cap ({formatCurrency(projectCapUsd)}). Data
-                refreshes roughly every{" "}
-                {qfEstimateContext.refreshIntervalMinutes} minutes. It does not
-                model Giveth&apos;s non-public COCM clustering, ETHSecurity
-                badge 4x donor weights, Passport or first-touch checks, or
-                post-round fraud review.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <ReferenceChipLink href={roundUrl} label="Round page" />
-                <ReferenceChipLink
-                  href={GIVETH_QF_DOCS_URL}
-                  label="Giveth QF docs"
-                />
-                <ReferenceChipLink
-                  href={GIVETH_COCM_ANNOUNCEMENT_URL}
-                  label="COCM announcement"
-                />
-                <ReferenceChipLink
-                  href={GIVETH_GRAPHQL_URL}
-                  label="Public GraphQL API"
-                />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <MethodologyPanel
+              title="Scoring model"
+              summary="Five curated signals, theme multipliers, and your ballot cap drive the final split."
+            >
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-sm leading-6">
+                  Final score = weighted signal sum multiplied by the average
+                  matched theme weight. Allocation = each project&apos;s score
+                  share across the top ranked projects in the ballot.
+                </p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Confidence appears on score hover. Lower confidence means the
+                  website and source sheet required more inference.
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {criterionDefinitions.map((criterion) => (
+                    <div
+                      key={criterion.key}
+                      className="border-border/70 bg-card/80 rounded-[1.1rem] border p-3"
+                    >
+                      <p className="text-foreground font-semibold">
+                        {criterion.shortLabel}
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-xs font-semibold tracking-[0.16em] uppercase">
+                        {criterion.label}
+                      </p>
+                      <p className="text-muted-foreground mt-3 text-sm leading-6">
+                        {criterion.description}
+                      </p>
+                      <p className="text-muted-foreground mt-3 text-xs leading-5">
+                        {criterion.calculation}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            </MethodologyPanel>
+
+            <MethodologyPanel
+              title="Live QF data"
+              summary="Raised, donors, and estimated match are public approximations refreshed from Giveth."
+            >
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-sm leading-6">
+                  Raised and donor counts use public{" "}
+                  {qfEstimateContext.roundName} donations that meet the
+                  round&apos;s $1 minimum, aggregated by donor wallet.
+                </p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Estimated match applies a standard QF subsidy estimate,
+                  normalizes to the current{" "}
+                  {formatCurrency(qfEstimateContext.matchingPoolUsd)} pool, and
+                  enforces the round&apos;s{" "}
+                  {formatPercent(qfEstimateContext.maxPerProjectRatio)}{" "}
+                  per-project cap ({formatCurrency(projectCapUsd)}).
+                </p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  This does not model Giveth&apos;s non-public COCM clustering,
+                  badge-based donor multipliers, Passport checks, first-touch
+                  rules, or post-round review.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <ReferenceChipLink
+                    href={GIVETH_QF_DOCS_URL}
+                    label="Giveth QF docs"
+                  />
+                  <ReferenceChipLink
+                    href={GIVETH_COCM_ANNOUNCEMENT_URL}
+                    label="COCM announcement"
+                  />
+                  <ReferenceChipLink
+                    href={GIVETH_GRAPHQL_URL}
+                    label="Public GraphQL API"
+                  />
+                </div>
+              </div>
+            </MethodologyPanel>
           </div>
         </CardContent>
       </Card>

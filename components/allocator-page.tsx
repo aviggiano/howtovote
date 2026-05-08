@@ -399,11 +399,12 @@ export function AllocatorPage({
               </p>
               <div className="max-w-4xl space-y-3">
                 <h1 className="text-foreground text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl lg:text-[3.85rem] lg:leading-[1.02]">
-                  Build a ballot you can defend.
+                  Shape a smarter donation split before you open Giveth.
                 </h1>
                 <p className="text-muted-foreground max-w-2xl text-[1.02rem] leading-7 sm:text-lg">
-                  Start from a preset, tune the signals that matter, then check
-                  the split against live round traction and project detail.
+                  Start from a preset, change the weights that matter, and
+                  compare the result against live round traction and project
+                  details.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

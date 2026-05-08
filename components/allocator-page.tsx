@@ -97,6 +97,10 @@ function formatMultiplier(value: number, fractionDigits = 2) {
   return `${value.toFixed(fractionDigits)}x`;
 }
 
+function formatControlMultiplier(value: number) {
+  return formatMultiplier(value, Number.isInteger(value) ? 0 : 2);
+}
+
 function clampWeight(
   value: number,
   min: number,
@@ -469,6 +473,230 @@ export function AllocatorPage({
 
         <section className="grid gap-6 xl:grid-cols-[minmax(19rem,22rem)_minmax(0,1fr)]">
           <aside className="space-y-4 xl:sticky xl:top-6 xl:max-h-[calc(100svh-3rem)] xl:self-start xl:overflow-y-auto xl:pr-1">
+            <Card className="panel-border bg-card/88">
+              <CardHeader className="gap-2">
+                <p className="eyebrow text-muted-foreground">Quick setup</p>
+                <CardTitle className="text-xl font-semibold tracking-[-0.02em]">
+                  Quick setup
+                </CardTitle>
+                <CardDescription className="leading-6">
+                  Choose a starting point, then cap how many projects make the
+                  ballot.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <p className="eyebrow text-muted-foreground">Preset</p>
+                  <div className="grid gap-2">
+                    {presets.map((preset) => {
+                      const active = preset.key === presetKey;
+
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() =>
+                            updateUrlState({ presetKey: preset.key })
+                          }
+                          className={`cursor-pointer rounded-[1.25rem] border px-4 py-3.5 text-left transition ${
+                            active
+                              ? "border-primary/35 bg-primary/8 shadow-[inset_0_1px_0_color-mix(in_oklab,white_60%,transparent)]"
+                              : "border-border/75 bg-background/72 hover:border-primary/28 hover:bg-background/92"
+                          }`}
+                        >
+                          <p className="text-foreground text-sm font-semibold">
+                            {preset.label}
+                          </p>
+                          <p className="text-muted-foreground mt-1.5 text-sm leading-6">
+                            {preset.description}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="border-border/75 bg-background/72 rounded-[1.35rem] border px-4 py-4">
+                  <div className="flex items-end justify-between gap-3">
+                    <label
+                      htmlFor="max-projects"
+                      className="space-y-1 text-sm leading-6"
+                    >
+                      <span className="eyebrow text-muted-foreground">
+                        Ballot cap
+                      </span>
+                      <span className="text-foreground block">
+                        Number of projects to include.
+                      </span>
+                    </label>
+                    <div className="w-28">
+                      <Input
+                        id="max-projects"
+                        type="number"
+                        min="1"
+                        max={projects.length}
+                        step="1"
+                        value={maxProjects}
+                        onChange={(event) =>
+                          updateUrlState({
+                            maxProjects: parseMaxProjectsValue(
+                              event.target.value,
+                              projects.length,
+                            ),
+                          })
+                        }
+                        aria-label="Maximum projects to include"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground mt-3 text-sm leading-6">
+                    The allocator always returns a 100% ballot split.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="panel-border bg-primary/6 shadow-[0_24px_70px_-54px_color-mix(in_oklab,var(--color-primary)_30%,transparent)]">
+              <CardHeader className="gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="eyebrow text-primary/80">Main controls</p>
+                    <CardTitle className="mt-1 text-xl font-semibold tracking-[-0.02em]">
+                      Tune the model
+                    </CardTitle>
+                  </div>
+                  <SlidersHorizontal className="text-primary h-4 w-4" />
+                </div>
+                <CardDescription className="leading-6">
+                  These are the main knobs.{" "}
+                  <span className="text-foreground font-mono">1x</span> is
+                  baseline. Raise a weight to lean harder on it, or lower it to
+                  cool it off.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+                <div className="border-border/75 bg-background/72 rounded-[1.15rem] border px-3.5 py-3">
+                  <p className="eyebrow text-muted-foreground">Baseline</p>
+                  <p className="text-foreground mt-2 font-mono text-sm font-semibold">
+                    1x
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm leading-6">
+                    Neutral weight.
+                  </p>
+                </div>
+                <div className="border-border/75 bg-background/72 rounded-[1.15rem] border px-3.5 py-3">
+                  <p className="eyebrow text-muted-foreground">Raise</p>
+                  <p className="text-foreground mt-2 text-sm font-semibold">
+                    Push it up
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm leading-6">
+                    Give that factor more pull.
+                  </p>
+                </div>
+                <div className="border-border/75 bg-background/72 rounded-[1.15rem] border px-3.5 py-3">
+                  <p className="eyebrow text-muted-foreground">Lower</p>
+                  <p className="text-foreground mt-2 text-sm font-semibold">
+                    Pull it back
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm leading-6">
+                    Soften it when you trust it less.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="panel-border bg-card/88">
+              <CardHeader className="gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="eyebrow text-muted-foreground">Core knobs</p>
+                    <CardTitle className="mt-1 text-xl font-semibold tracking-[-0.02em]">
+                      Tune signal weights
+                    </CardTitle>
+                  </div>
+                  <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
+                </div>
+                <CardDescription className="leading-6">
+                  Raise a signal to give it more influence in every score, or
+                  lower it to soften its pull.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {criterionDefinitions.map((criterion) => (
+                  <WeightStepper
+                    key={criterion.key}
+                    label={criterion.label}
+                    description={criterion.description}
+                    valueLabel={formatControlMultiplier(
+                      criterionMultipliers[criterion.key],
+                    )}
+                    onDecrease={() =>
+                      updateCriterionMultiplier(criterion.key, -1)
+                    }
+                    onIncrease={() =>
+                      updateCriterionMultiplier(criterion.key, 1)
+                    }
+                    decreaseDisabled={
+                      criterionMultipliers[criterion.key] <=
+                      minUserWeightMultiplier
+                    }
+                    increaseDisabled={
+                      criterionMultipliers[criterion.key] >=
+                      maxUserWeightMultiplier
+                    }
+                  />
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="panel-border bg-card/88">
+              <CardHeader className="gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="eyebrow text-muted-foreground">Theme knobs</p>
+                    <CardTitle className="mt-1 text-xl font-semibold tracking-[-0.02em]">
+                      Tune theme weights
+                    </CardTitle>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={resetCustomization}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset
+                  </Button>
+                </div>
+                <CardDescription className="leading-6">
+                  Overweight or cool off a basket directly when you want the
+                  ballot to tilt toward a theme.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {themeDefinitions.map((theme) => (
+                  <WeightStepper
+                    key={theme.key}
+                    label={theme.label}
+                    description={theme.blurb}
+                    valueLabel={formatMultiplier(
+                      themeMultipliers[theme.key],
+                      0,
+                    )}
+                    onDecrease={() => updateThemeMultiplier(theme.key, -1)}
+                    onIncrease={() => updateThemeMultiplier(theme.key, 1)}
+                    decreaseDisabled={
+                      themeMultipliers[theme.key] <= minThemeWeightMultiplier
+                    }
+                    increaseDisabled={
+                      themeMultipliers[theme.key] >= maxThemeWeightMultiplier
+                    }
+                  />
+                ))}
+              </CardContent>
+            </Card>
+
             <Card className="panel-border bg-card/88 shadow-[0_24px_70px_-54px_color-mix(in_oklab,var(--color-primary)_26%,transparent)]">
               <CardHeader className="gap-2">
                 <p className="eyebrow text-muted-foreground">Model state</p>
@@ -567,183 +795,6 @@ export function AllocatorPage({
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="panel-border bg-card/88">
-              <CardHeader className="gap-2">
-                <p className="eyebrow text-muted-foreground">Quick setup</p>
-                <CardTitle className="text-xl font-semibold tracking-[-0.02em]">
-                  Quick setup
-                </CardTitle>
-                <CardDescription className="leading-6">
-                  Choose a starting point, then cap how many projects make the
-                  ballot.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-2">
-                  <p className="eyebrow text-muted-foreground">Preset</p>
-                  <div className="grid gap-2">
-                    {presets.map((preset) => {
-                      const active = preset.key === presetKey;
-
-                      return (
-                        <button
-                          key={preset.key}
-                          type="button"
-                          onClick={() =>
-                            updateUrlState({ presetKey: preset.key })
-                          }
-                          className={`cursor-pointer rounded-[1.25rem] border px-4 py-3.5 text-left transition ${
-                            active
-                              ? "border-primary/35 bg-primary/8 shadow-[inset_0_1px_0_color-mix(in_oklab,white_60%,transparent)]"
-                              : "border-border/75 bg-background/72 hover:border-primary/28 hover:bg-background/92"
-                          }`}
-                        >
-                          <p className="text-foreground text-sm font-semibold">
-                            {preset.label}
-                          </p>
-                          <p className="text-muted-foreground mt-1.5 text-sm leading-6">
-                            {preset.description}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="border-border/75 bg-background/72 rounded-[1.35rem] border px-4 py-4">
-                  <div className="flex items-end justify-between gap-3">
-                    <label
-                      htmlFor="max-projects"
-                      className="space-y-1 text-sm leading-6"
-                    >
-                      <span className="eyebrow text-muted-foreground">
-                        Ballot cap
-                      </span>
-                      <span className="text-foreground block">
-                        Number of projects to include.
-                      </span>
-                    </label>
-                    <div className="w-28">
-                      <Input
-                        id="max-projects"
-                        type="number"
-                        min="1"
-                        max={projects.length}
-                        step="1"
-                        value={maxProjects}
-                        onChange={(event) =>
-                          updateUrlState({
-                            maxProjects: parseMaxProjectsValue(
-                              event.target.value,
-                              projects.length,
-                            ),
-                          })
-                        }
-                        aria-label="Maximum projects to include"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground mt-3 text-sm leading-6">
-                    The allocator always returns a 100% ballot split.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="panel-border bg-card/88">
-              <CardHeader className="gap-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="eyebrow text-muted-foreground">
-                      Signal weights
-                    </p>
-                    <CardTitle className="mt-1 text-xl font-semibold tracking-[-0.02em]">
-                      Signal weights
-                    </CardTitle>
-                  </div>
-                  <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
-                </div>
-                <CardDescription className="leading-6">
-                  Change how the score is built.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3">
-                {criterionDefinitions.map((criterion) => (
-                  <WeightStepper
-                    key={criterion.key}
-                    label={criterion.label}
-                    description={criterion.description}
-                    valueLabel={formatMultiplier(
-                      criterionMultipliers[criterion.key],
-                    )}
-                    onDecrease={() =>
-                      updateCriterionMultiplier(criterion.key, -1)
-                    }
-                    onIncrease={() =>
-                      updateCriterionMultiplier(criterion.key, 1)
-                    }
-                    decreaseDisabled={
-                      criterionMultipliers[criterion.key] <=
-                      minUserWeightMultiplier
-                    }
-                    increaseDisabled={
-                      criterionMultipliers[criterion.key] >=
-                      maxUserWeightMultiplier
-                    }
-                  />
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="panel-border bg-card/88">
-              <CardHeader className="gap-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="eyebrow text-muted-foreground">
-                      Theme weights
-                    </p>
-                    <CardTitle className="mt-1 text-xl font-semibold tracking-[-0.02em]">
-                      Theme weights
-                    </CardTitle>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-full"
-                    onClick={resetCustomization}
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Reset
-                  </Button>
-                </div>
-                <CardDescription className="leading-6">
-                  Raise or lower a basket directly.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3">
-                {themeDefinitions.map((theme) => (
-                  <WeightStepper
-                    key={theme.key}
-                    label={theme.label}
-                    description={theme.blurb}
-                    valueLabel={formatMultiplier(
-                      themeMultipliers[theme.key],
-                      0,
-                    )}
-                    onDecrease={() => updateThemeMultiplier(theme.key, -1)}
-                    onIncrease={() => updateThemeMultiplier(theme.key, 1)}
-                    decreaseDisabled={
-                      themeMultipliers[theme.key] <= minThemeWeightMultiplier
-                    }
-                    increaseDisabled={
-                      themeMultipliers[theme.key] >= maxThemeWeightMultiplier
-                    }
-                  />
-                ))}
               </CardContent>
             </Card>
           </aside>

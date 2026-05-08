@@ -468,7 +468,7 @@ export function AllocatorPage({
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(19rem,22rem)_minmax(0,1fr)]">
-          <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+          <aside className="space-y-4 xl:sticky xl:top-6 xl:max-h-[calc(100svh-3rem)] xl:self-start xl:overflow-y-auto xl:pr-1">
             <Card className="panel-border bg-card/88 shadow-[0_24px_70px_-54px_color-mix(in_oklab,var(--color-primary)_26%,transparent)]">
               <CardHeader className="gap-2">
                 <p className="eyebrow text-muted-foreground">Model state</p>

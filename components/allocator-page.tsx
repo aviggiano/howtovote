@@ -90,14 +90,6 @@ type DataChipButtonProps = {
 
 type CopyState = "idle" | "copied" | "error";
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: value >= 1000 ? 0 : 2,
-  }).format(value);
-}
-
 function formatMultiplier(value: number, fractionDigits = 2) {
   return `${value.toFixed(fractionDigits)}x`;
 }
@@ -427,7 +419,7 @@ export function AllocatorPage({
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
                 <p className="eyebrow text-muted-foreground">Projects</p>
                 <p className="text-foreground mt-2 text-2xl font-semibold">
@@ -438,21 +430,30 @@ export function AllocatorPage({
                 </p>
               </div>
               <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
-                <p className="eyebrow text-muted-foreground">Matching pool</p>
+                <p className="eyebrow text-muted-foreground">Presets</p>
                 <p className="text-foreground mt-2 text-2xl font-semibold">
-                  {formatCurrency(qfEstimateContext.matchingPoolUsd)}
+                  {presets.length}
                 </p>
                 <p className="text-muted-foreground mt-1 text-sm leading-6">
-                  Public pool used for live estimates.
+                  Starting positions available.
                 </p>
               </div>
               <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
-                <p className="eyebrow text-muted-foreground">Refresh</p>
+                <p className="eyebrow text-muted-foreground">Signals</p>
                 <p className="text-foreground mt-2 text-2xl font-semibold">
-                  ~{qfEstimateContext.refreshIntervalMinutes} min
+                  {criterionDefinitions.length}
                 </p>
                 <p className="text-muted-foreground mt-1 text-sm leading-6">
-                  QF data cadence from Giveth.
+                  Criteria in the scoring model.
+                </p>
+              </div>
+              <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
+                <p className="eyebrow text-muted-foreground">Theme baskets</p>
+                <p className="text-foreground mt-2 text-2xl font-semibold">
+                  {themeDefinitions.length}
+                </p>
+                <p className="text-muted-foreground mt-1 text-sm leading-6">
+                  Baskets you can overweight directly.
                 </p>
               </div>
             </div>

@@ -6,12 +6,9 @@ import {
   ExternalLink,
   Link2,
   Minus,
-  RefreshCw,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  Target,
   Plus,
+  RefreshCw,
+  SlidersHorizontal,
 } from "lucide-react";
 import { AllocationSummary } from "@/components/allocator/allocation-summary";
 import { ProjectTable } from "@/components/allocator/project-table";
@@ -26,9 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  OFFICIAL_PROJECT_SHEET_TITLE,
   OFFICIAL_PROJECT_SHEET_URL,
-  PROJECT_SPREADSHEET_LABEL,
   getGivethRoundUrl,
 } from "@/data/allocator-metadata";
 import {
@@ -80,6 +75,28 @@ type WeightStepperProps = {
   increaseDisabled: boolean;
   valueLabel: string;
 };
+
+type DataChipLinkProps = {
+  href: string;
+  children: string;
+  primary?: boolean;
+};
+
+type DataChipButtonProps = {
+  children: string;
+  onClick: () => void;
+  active?: boolean;
+};
+
+type CopyState = "idle" | "copied" | "error";
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: value >= 1000 ? 0 : 2,
+  }).format(value);
+}
 
 function formatMultiplier(value: number, fractionDigits = 2) {
   return `${value.toFixed(fractionDigits)}x`;
@@ -139,41 +156,38 @@ function adjustWeight<T extends string>(
   };
 }
 
-type DataChipLinkProps = {
-  href: string;
-  children: string;
-  primary?: boolean;
-};
-
 function DataChipLink({ href, children, primary = false }: DataChipLinkProps) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm font-medium transition hover:-translate-y-px ${
+      className={`inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm font-medium transition hover:-translate-y-px ${
         primary
-          ? "bg-primary text-primary-foreground border-primary/80"
-          : "border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background"
+          ? "border-primary/30 bg-primary/8 text-foreground hover:border-primary/45 hover:bg-primary/12"
+          : "border-border/75 bg-background/78 text-foreground hover:border-primary/30 hover:bg-background"
       }`}
     >
-      {children}
-      <ExternalLink className="h-3.5 w-3.5" />
+      <span className="min-w-0 truncate">{children}</span>
+      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
     </a>
   );
 }
 
-type DataChipButtonProps = {
-  children: string;
-  onClick: () => void;
-};
-
-function DataChipButton({ children, onClick }: DataChipButtonProps) {
+function DataChipButton({
+  children,
+  onClick,
+  active = false,
+}: DataChipButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
+      className={`inline-flex max-w-full min-w-0 cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px ${
+        active
+          ? "border-primary/35 bg-primary/10 text-foreground"
+          : "border-border/75 bg-background/78 text-foreground hover:border-primary/30 hover:bg-background"
+      }`}
     >
       {children}
       <Link2 className="h-3.5 w-3.5" />
@@ -191,40 +205,33 @@ function WeightStepper({
   valueLabel,
 }: WeightStepperProps) {
   return (
-    <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-foreground font-semibold">{label}</p>
-          <p className="text-muted-foreground mt-1 text-sm leading-6">
-            {description}
-          </p>
+    <div className="border-border/75 bg-background/72 rounded-[1.35rem] border px-4 py-3.5">
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-foreground text-sm font-semibold">{label}</p>
+          <span className="eyebrow text-muted-foreground">{valueLabel}</span>
         </div>
-        <Badge
-          variant="secondary"
-          className="w-[5.75rem] shrink-0 justify-center rounded-full tabular-nums"
-        >
-          {valueLabel}
-        </Badge>
+        <p className="text-muted-foreground text-sm leading-6">{description}</p>
       </div>
-      <div className="mt-4 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-2">
         <Button
           type="button"
           variant="outline"
-          size="icon"
-          className="rounded-full"
+          size="icon-sm"
+          className="bg-background/92 rounded-full"
           onClick={onDecrease}
           disabled={decreaseDisabled}
         >
           <Minus className="h-4 w-4" />
         </Button>
-        <div className="border-border/70 bg-secondary/40 text-foreground flex-1 rounded-full border px-3 py-2 text-center text-sm font-medium tabular-nums">
+        <div className="border-border/75 bg-secondary/38 text-foreground flex-1 rounded-full border px-3 py-2 text-center font-mono text-sm font-medium tabular-nums">
           {valueLabel}
         </div>
         <Button
           type="button"
           variant="outline"
-          size="icon"
-          className="rounded-full"
+          size="icon-sm"
+          className="bg-background/92 rounded-full"
           onClick={onIncrease}
           disabled={increaseDisabled}
         >
@@ -258,7 +265,7 @@ export function AllocatorPage({
     initialThemeMultipliers,
   );
   const [query, setQuery] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
   const deferredQuery = useDeferredValue(query);
 
   const recommendations = scoreProjects(projects, {
@@ -282,6 +289,8 @@ export function AllocatorPage({
     ),
   );
   const roundUrl = getGivethRoundUrl(qfEstimateContext.roundSlug);
+  const activePreset =
+    presets.find((preset) => preset.key === presetKey)?.label ?? "Balanced";
 
   const activeCriterionWeights = criterionDefinitions.filter(
     (criterion) => criterionMultipliers[criterion.key] !== 1,
@@ -369,402 +378,417 @@ export function AllocatorPage({
       window.location.origin,
     ).toString();
 
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+
+    window.setTimeout(() => setCopyState("idle"), 1400);
   }
 
   return (
     <main className="min-h-screen">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-        <section className="surface-panel border-primary/15 shadow-primary/5 overflow-hidden rounded-[2rem] border shadow-xl">
-          <div className="space-y-8 px-6 py-8 md:px-8 lg:px-10 lg:py-10">
-            <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <DataChipLink href={roundUrl} primary>
-                  Ethereum Security Round
-                </DataChipLink>
-                <DataChipLink href={OFFICIAL_PROJECT_SHEET_URL}>
-                  {PROJECT_SPREADSHEET_LABEL}
-                </DataChipLink>
-                <DataChipButton onClick={copyShareLink}>
-                  {copied ? "Copied share URL" : "Share allocator state"}
-                </DataChipButton>
-              </div>
-              <div className="space-y-4">
-                <h1 className="font-heading text-foreground text-4xl leading-tight font-semibold text-balance sm:text-5xl lg:text-6xl">
-                  Shape a smarter donation split before you open Giveth.
+      <div className="mx-auto flex w-full max-w-[92rem] flex-col gap-6 px-4 pt-5 pb-10 sm:px-6 lg:px-8 lg:pt-6 lg:pb-14">
+        <section className="surface-panel panel-border overflow-hidden rounded-[2rem] border">
+          <div className="grid gap-8 px-5 py-6 sm:px-6 lg:px-8 lg:py-8 xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-10">
+            <div className="space-y-5">
+              <p className="eyebrow text-muted-foreground">
+                Ethereum Security allocator
+              </p>
+              <div className="max-w-4xl space-y-3">
+                <h1 className="text-foreground text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl lg:text-[3.85rem] lg:leading-[1.02]">
+                  Build a ballot you can defend.
                 </h1>
-                <p className="text-muted-foreground max-w-3xl text-base leading-8 sm:text-lg">
-                  Start from a preset, then change the actual weights. You can
-                  favor tooling, deprioritize other baskets, raise track record,
-                  and split 100% of your ballot across a smaller set of
-                  projects.
+                <p className="text-muted-foreground max-w-2xl text-[1.02rem] leading-7 sm:text-lg">
+                  Start from a preset, tune the signals that matter, then check
+                  the split against live round traction and project detail.
                 </p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
-                  <ShieldCheck className="text-primary h-5 w-5" />
-                  <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
-                    Projects
-                  </p>
-                  <p className="text-foreground mt-1 text-3xl font-semibold">
-                    {projects.length}
-                  </p>
-                </div>
-                <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
-                  <Sparkles className="text-primary h-5 w-5" />
-                  <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
-                    Presets
-                  </p>
-                  <p className="text-foreground mt-1 text-3xl font-semibold">
-                    {presets.length}
-                  </p>
-                </div>
-                <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
-                  <SlidersHorizontal className="text-primary h-5 w-5" />
-                  <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
-                    Signals
-                  </p>
-                  <p className="text-foreground mt-1 text-3xl font-semibold">
-                    {criterionDefinitions.length}
-                  </p>
-                </div>
-                <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
-                  <Target className="text-primary h-5 w-5" />
-                  <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
-                    Theme baskets
-                  </p>
-                  <p className="text-foreground mt-1 text-3xl font-semibold">
-                    {themeDefinitions.length}
-                  </p>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                <DataChipLink href={roundUrl} primary>
+                  {qfEstimateContext.roundName}
+                </DataChipLink>
+                <DataChipLink href={OFFICIAL_PROJECT_SHEET_URL}>
+                  Source sheet
+                </DataChipLink>
+                <DataChipButton
+                  onClick={copyShareLink}
+                  active={copyState !== "idle"}
+                >
+                  {copyState === "copied"
+                    ? "URL copied"
+                    : copyState === "error"
+                      ? "Copy failed"
+                      : "Copy current URL"}
+                </DataChipButton>
               </div>
             </div>
 
-            <Card className="border-border/80 bg-background/78 shadow-none">
-              <CardHeader className="gap-4 xl:flex-row xl:items-end xl:justify-between">
-                <CardTitle className="font-heading text-2xl">
-                  Quick-start controls
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
+                <p className="eyebrow text-muted-foreground">Projects</p>
+                <p className="text-foreground mt-2 text-2xl font-semibold">
+                  {projects.length}
+                </p>
+                <p className="text-muted-foreground mt-1 text-sm leading-6">
+                  Included in the current round.
+                </p>
+              </div>
+              <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
+                <p className="eyebrow text-muted-foreground">Matching pool</p>
+                <p className="text-foreground mt-2 text-2xl font-semibold">
+                  {formatCurrency(qfEstimateContext.matchingPoolUsd)}
+                </p>
+                <p className="text-muted-foreground mt-1 text-sm leading-6">
+                  Public pool used for live estimates.
+                </p>
+              </div>
+              <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
+                <p className="eyebrow text-muted-foreground">Refresh</p>
+                <p className="text-foreground mt-2 text-2xl font-semibold">
+                  ~{qfEstimateContext.refreshIntervalMinutes} min
+                </p>
+                <p className="text-muted-foreground mt-1 text-sm leading-6">
+                  QF data cadence from Giveth.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[minmax(19rem,22rem)_minmax(0,1fr)]">
+          <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+            <Card className="panel-border bg-card/88 shadow-[0_24px_70px_-54px_color-mix(in_oklab,var(--color-primary)_26%,transparent)]">
+              <CardHeader className="gap-2">
+                <p className="eyebrow text-muted-foreground">Model state</p>
+                <CardTitle className="text-xl font-semibold tracking-[-0.02em]">
+                  Model state
                 </CardTitle>
-                <CardDescription className="max-w-3xl leading-6">
-                  Presets are only a starting point. The recommendation updates
-                  when you change ballot size, signal weights, or theme weights.
-                  Project metadata comes from the {OFFICIAL_PROJECT_SHEET_TITLE}{" "}
-                  spreadsheet, which is synced by a third party, and round stats
-                  refresh from Giveth roughly every{" "}
-                  {qfEstimateContext.refreshIntervalMinutes} minutes.
+                <CardDescription className="leading-6">
+                  Preset, ballot cap, and active overrides.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
-                <div className="space-y-6">
-                  <div className="border-border/70 bg-background/70 rounded-3xl border p-5">
-                    <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                      Preset
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  <div className="border-border/75 bg-background/72 rounded-[1.25rem] border px-4 py-3">
+                    <p className="eyebrow text-muted-foreground">Preset</p>
+                    <p className="text-foreground mt-2 text-lg font-semibold">
+                      {activePreset}
                     </p>
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-                      {presets.map((preset) => {
-                        const active = preset.key === presetKey;
-
-                        return (
-                          <button
-                            key={preset.key}
-                            type="button"
-                            onClick={() =>
-                              updateUrlState({ presetKey: preset.key })
-                            }
-                            className={`cursor-pointer rounded-3xl border px-4 py-4 text-left transition ${
-                              active
-                                ? "border-primary bg-primary/10 shadow-sm"
-                                : "border-border/70 bg-background/70 hover:border-primary/40"
-                            }`}
-                          >
-                            <p className="text-foreground font-semibold">
-                              {preset.label}
-                            </p>
-                            <p className="text-muted-foreground mt-2 text-sm leading-6">
-                              {preset.description}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
-
-                  <div className="border-border/70 bg-background/70 rounded-3xl border p-5">
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                      <div className="space-y-3">
-                        <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                          Allocation basis
-                        </p>
-                        <div className="border-border/70 bg-secondary/35 text-foreground rounded-2xl border px-3 py-2 text-lg font-semibold">
-                          {defaultBudget}%
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                          Maximum projects
-                        </p>
-                        <Input
-                          type="number"
-                          min="1"
-                          max={projects.length}
-                          step="1"
-                          value={maxProjects}
-                          onChange={(event) =>
-                            updateUrlState({
-                              maxProjects: parseMaxProjectsValue(
-                                event.target.value,
-                                projects.length,
-                              ),
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground mt-4 text-sm leading-6">
-                      Recommendations are expressed as shares of a 100% ballot.
-                      Share state is encoded directly in the URL, and the chip
-                      above copies the current allocator configuration.
+                  <div className="border-border/75 bg-background/72 rounded-[1.25rem] border px-4 py-3">
+                    <p className="eyebrow text-muted-foreground">Ballot cap</p>
+                    <p className="text-foreground mt-2 text-lg font-semibold">
+                      {maxProjects} projects
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="border-border/70 bg-background/70 rounded-3xl border p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                          Criterion weights
-                        </p>
-                        <p className="text-muted-foreground mt-1 text-sm">
-                          How much each scoring dimension matters overall.
-                        </p>
-                      </div>
-                      <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
-                    </div>
-                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                      {criterionDefinitions.map((criterion) => (
-                        <WeightStepper
+                <div className="space-y-2">
+                  <p className="eyebrow text-muted-foreground">
+                    Signal overrides
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {activeCriterionWeights.length > 0 ? (
+                      activeCriterionWeights.map((criterion) => (
+                        <Badge
                           key={criterion.key}
-                          label={criterion.label}
-                          description={`Current multiplier for ${criterion.label.toLowerCase()}.`}
-                          valueLabel={formatMultiplier(
+                          className="bg-primary text-primary-foreground rounded-full"
+                        >
+                          {criterion.shortLabel}{" "}
+                          {formatMultiplier(
                             criterionMultipliers[criterion.key],
                             0,
                           )}
-                          onDecrease={() =>
-                            updateCriterionMultiplier(criterion.key, -1)
-                          }
-                          onIncrease={() =>
-                            updateCriterionMultiplier(criterion.key, 1)
-                          }
-                          decreaseDisabled={
-                            criterionMultipliers[criterion.key] <=
-                            minUserWeightMultiplier
-                          }
-                          increaseDisabled={
-                            criterionMultipliers[criterion.key] >=
-                            maxUserWeightMultiplier
-                          }
-                        />
-                      ))}
-                    </div>
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-sm leading-6">
+                        All signals are at baseline.
+                      </p>
+                    )}
                   </div>
+                </div>
 
-                  <div className="border-border/70 bg-background/70 rounded-3xl border p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                          Theme weights
-                        </p>
-                        <p className="text-muted-foreground mt-1 text-sm">
-                          Raise or lower specific baskets directly. This covers
-                          cases like “tooling, vote for 10”.
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-full"
-                        onClick={resetCustomization}
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Reset custom weights
-                      </Button>
-                    </div>
-                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                      {themeDefinitions.map((theme) => (
-                        <WeightStepper
+                <div className="space-y-2">
+                  <p className="eyebrow text-muted-foreground">
+                    Theme overrides
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {activeThemeWeights.length > 0 ? (
+                      activeThemeWeights.map((theme) => (
+                        <Badge
                           key={theme.key}
-                          label={theme.label}
-                          description={theme.blurb}
-                          valueLabel={formatMultiplier(
-                            themeMultipliers[theme.key],
-                            0,
-                          )}
-                          onDecrease={() =>
-                            updateThemeMultiplier(theme.key, -1)
-                          }
-                          onIncrease={() => updateThemeMultiplier(theme.key, 1)}
-                          decreaseDisabled={
-                            themeMultipliers[theme.key] <=
-                            minThemeWeightMultiplier
-                          }
-                          increaseDisabled={
-                            themeMultipliers[theme.key] >=
-                            maxThemeWeightMultiplier
-                          }
-                        />
-                      ))}
-                    </div>
+                          variant="secondary"
+                          className="rounded-full"
+                        >
+                          {theme.shortLabel}{" "}
+                          {formatMultiplier(themeMultipliers[theme.key], 0)}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-sm leading-6">
+                        All theme baskets are at baseline.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="eyebrow text-muted-foreground">
+                    Themes in the current ballot
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {topThemes.length > 0 ? (
+                      topThemes.map((themeKey) => (
+                        <Badge
+                          key={themeKey}
+                          variant="secondary"
+                          className="rounded-full"
+                        >
+                          {themeDefinitionByKey[themeKey].shortLabel}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-sm leading-6">
+                        No projects are currently allocating.
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </section>
 
-        <section className="space-y-6">
-          <Card className="border-border/80 bg-card/88 shadow-sm">
-            <CardHeader className="gap-3">
-              <CardTitle className="font-heading text-2xl">
-                Current emphasis
-              </CardTitle>
-              <CardDescription className="leading-6">
-                The preset still seeds the model, but the final recommendation
-                is now shaped by explicit user multipliers and a ballot-size
-                cap.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="border-border/70 bg-secondary/25 rounded-3xl border p-4">
-                <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                  Active preset
-                </p>
-                <p className="text-foreground mt-2 text-xl font-semibold">
-                  {presets.find((preset) => preset.key === presetKey)?.label ??
-                    "Balanced"}
-                </p>
-              </div>
-              <div className="border-border/70 bg-secondary/25 rounded-3xl border p-4">
-                <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                  Maximum projects
-                </p>
-                <p className="text-foreground mt-2 text-xl font-semibold">
-                  {maxProjects}
-                </p>
-              </div>
-              <div className="space-y-3">
-                <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                  Criteria with custom weight
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {activeCriterionWeights.length > 0 ? (
-                    activeCriterionWeights.map((criterion) => (
-                      <Badge
-                        key={criterion.key}
-                        className="bg-primary text-primary-foreground rounded-full"
-                      >
-                        {criterion.shortLabel}{" "}
-                        {formatMultiplier(
-                          criterionMultipliers[criterion.key],
-                          0,
-                        )}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      No custom criterion multipliers applied.
-                    </p>
-                  )}
+            <Card className="panel-border bg-card/88">
+              <CardHeader className="gap-2">
+                <p className="eyebrow text-muted-foreground">Quick setup</p>
+                <CardTitle className="text-xl font-semibold tracking-[-0.02em]">
+                  Quick setup
+                </CardTitle>
+                <CardDescription className="leading-6">
+                  Choose a starting point, then cap how many projects make the
+                  ballot.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <p className="eyebrow text-muted-foreground">Preset</p>
+                  <div className="grid gap-2">
+                    {presets.map((preset) => {
+                      const active = preset.key === presetKey;
+
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() =>
+                            updateUrlState({ presetKey: preset.key })
+                          }
+                          className={`cursor-pointer rounded-[1.25rem] border px-4 py-3.5 text-left transition ${
+                            active
+                              ? "border-primary/35 bg-primary/8 shadow-[inset_0_1px_0_color-mix(in_oklab,white_60%,transparent)]"
+                              : "border-border/75 bg-background/72 hover:border-primary/28 hover:bg-background/92"
+                          }`}
+                        >
+                          <p className="text-foreground text-sm font-semibold">
+                            {preset.label}
+                          </p>
+                          <p className="text-muted-foreground mt-1.5 text-sm leading-6">
+                            {preset.description}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-3">
-                <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                  Themes with custom weight
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {activeThemeWeights.length > 0 ? (
-                    activeThemeWeights.map((theme) => (
-                      <Badge
-                        key={theme.key}
-                        variant="secondary"
-                        className="rounded-full"
-                      >
-                        {theme.shortLabel}{" "}
-                        {formatMultiplier(themeMultipliers[theme.key], 0)}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      No custom theme multipliers applied.
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-3">
-                <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                  Themes surfacing near the top
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {topThemes.map((themeKey) => (
-                    <Badge
-                      key={themeKey}
-                      variant="secondary"
-                      className="rounded-full"
+
+                <div className="border-border/75 bg-background/72 rounded-[1.35rem] border px-4 py-4">
+                  <div className="flex items-end justify-between gap-3">
+                    <label
+                      htmlFor="max-projects"
+                      className="space-y-1 text-sm leading-6"
                     >
-                      {themeDefinitionByKey[themeKey].shortLabel}
-                    </Badge>
-                  ))}
+                      <span className="eyebrow text-muted-foreground">
+                        Ballot cap
+                      </span>
+                      <span className="text-foreground block">
+                        Number of projects to include.
+                      </span>
+                    </label>
+                    <div className="w-28">
+                      <Input
+                        id="max-projects"
+                        type="number"
+                        min="1"
+                        max={projects.length}
+                        step="1"
+                        value={maxProjects}
+                        onChange={(event) =>
+                          updateUrlState({
+                            maxProjects: parseMaxProjectsValue(
+                              event.target.value,
+                              projects.length,
+                            ),
+                          })
+                        }
+                        aria-label="Maximum projects to include"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground mt-3 text-sm leading-6">
+                    The allocator always returns a 100% ballot split.
+                  </p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <AllocationSummary
-            projects={recommendations}
-            maxProjects={maxProjects}
-          />
+              </CardContent>
+            </Card>
+
+            <Card className="panel-border bg-card/88">
+              <CardHeader className="gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="eyebrow text-muted-foreground">
+                      Signal weights
+                    </p>
+                    <CardTitle className="mt-1 text-xl font-semibold tracking-[-0.02em]">
+                      Signal weights
+                    </CardTitle>
+                  </div>
+                  <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
+                </div>
+                <CardDescription className="leading-6">
+                  Change how the score is built.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {criterionDefinitions.map((criterion) => (
+                  <WeightStepper
+                    key={criterion.key}
+                    label={criterion.label}
+                    description={criterion.description}
+                    valueLabel={formatMultiplier(
+                      criterionMultipliers[criterion.key],
+                    )}
+                    onDecrease={() =>
+                      updateCriterionMultiplier(criterion.key, -1)
+                    }
+                    onIncrease={() =>
+                      updateCriterionMultiplier(criterion.key, 1)
+                    }
+                    decreaseDisabled={
+                      criterionMultipliers[criterion.key] <=
+                      minUserWeightMultiplier
+                    }
+                    increaseDisabled={
+                      criterionMultipliers[criterion.key] >=
+                      maxUserWeightMultiplier
+                    }
+                  />
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="panel-border bg-card/88">
+              <CardHeader className="gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="eyebrow text-muted-foreground">
+                      Theme weights
+                    </p>
+                    <CardTitle className="mt-1 text-xl font-semibold tracking-[-0.02em]">
+                      Theme weights
+                    </CardTitle>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={resetCustomization}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset
+                  </Button>
+                </div>
+                <CardDescription className="leading-6">
+                  Raise or lower a basket directly.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {themeDefinitions.map((theme) => (
+                  <WeightStepper
+                    key={theme.key}
+                    label={theme.label}
+                    description={theme.blurb}
+                    valueLabel={formatMultiplier(
+                      themeMultipliers[theme.key],
+                      0,
+                    )}
+                    onDecrease={() => updateThemeMultiplier(theme.key, -1)}
+                    onIncrease={() => updateThemeMultiplier(theme.key, 1)}
+                    decreaseDisabled={
+                      themeMultipliers[theme.key] <= minThemeWeightMultiplier
+                    }
+                    increaseDisabled={
+                      themeMultipliers[theme.key] >= maxThemeWeightMultiplier
+                    }
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          </aside>
+
+          <div className="space-y-6">
+            <AllocationSummary
+              projects={recommendations}
+              maxProjects={maxProjects}
+            />
+            <ProjectTable
+              projects={filteredRecommendations}
+              query={query}
+              onQueryChange={setQuery}
+              qfEstimateContext={qfEstimateContext}
+            />
+          </div>
         </section>
 
-        <ProjectTable
-          projects={filteredRecommendations}
-          query={query}
-          onQueryChange={setQuery}
-          qfEstimateContext={qfEstimateContext}
-        />
-
-        <footer className="border-border/70 mt-8 border-t pt-4 pb-8">
-          <div className="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
-            <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-2">
-              <span>Find more from the builder on</span>
-              <a
-                href="https://x.com/aviggiano"
-                target="_blank"
-                rel="noreferrer"
-                className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
-              >
-                X (formerly Twitter)
-              </a>
-            </div>
-            <details className="bg-card/70 border-border/70 rounded-3xl border px-4 py-3">
-              <summary className="text-foreground cursor-pointer font-medium">
-                How the curation scores were produced
-              </summary>
-              <div className="text-muted-foreground mt-3 space-y-3">
-                <p>{curationTransparencyNote}</p>
-                <p>
-                  Reusable review prompt: This is the closest prompt-form rubric
-                  for anyone who wants to sanity check the scores independently.
+        <section className="space-y-4">
+          <details className="panel-border bg-card/88 rounded-[1.6rem] border">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
+              <div>
+                <p className="eyebrow text-muted-foreground">Reference</p>
+                <p className="text-foreground mt-1 text-base font-semibold">
+                  How the curation scores were produced
                 </p>
-                <pre className="bg-muted/60 text-foreground overflow-x-auto rounded-2xl border p-4 text-xs leading-6 whitespace-pre-wrap">
-                  {reusableCurationPrompt}
-                </pre>
               </div>
-            </details>
-          </div>
-        </footer>
+              <span className="text-muted-foreground text-sm">
+                Open methodology
+              </span>
+            </summary>
+            <div className="border-border/70 text-muted-foreground space-y-3 border-t px-5 py-4 text-sm leading-6">
+              <p>{curationTransparencyNote}</p>
+              <p>
+                Reusable review prompt: This is the closest prompt-form rubric
+                for anyone who wants to sanity check the scores independently.
+              </p>
+              <pre className="bg-muted/60 text-foreground overflow-x-auto rounded-[1.15rem] border p-4 text-xs leading-6 whitespace-pre-wrap">
+                {reusableCurationPrompt}
+              </pre>
+            </div>
+          </details>
+
+          <footer className="text-muted-foreground flex justify-center pt-1 pb-2 text-sm">
+            <a
+              href="https://x.com/aviggiano"
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground decoration-primary/35 font-medium underline underline-offset-4"
+            >
+              Built by aviggiano
+            </a>
+          </footer>
+        </section>
       </div>
     </main>
   );

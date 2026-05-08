@@ -1,24 +1,26 @@
 import type { Metadata } from "next";
-import { Manrope, Source_Serif_4 } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-const bodyFont = Manrope({
-  variable: "--font-manrope",
+const bodyFont = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const headingFont = Source_Serif_4({
-  variable: "--font-source-serif",
+const monoFont = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: "How To Vote",
+  title: "How To Vote | Ethereum Security Allocator",
   description:
-    "A shareable Ethereum Security round allocator for donors who want a reasoned recommendation instead of a blank spreadsheet.",
+    "An Ethereum Security round allocator for donors who want a faster, more defensible ballot.",
 };
 
 export default function RootLayout({
@@ -29,7 +31,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bodyFont.variable} ${headingFont.variable} h-full antialiased`}
+      className={`${bodyFont.variable} ${monoFont.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
         <TooltipProvider>{children}</TooltipProvider>

@@ -29,9 +29,9 @@ export function createThemeWeights(
 export const defaultBudget = 100;
 export const defaultMaxProjects = 10;
 export const defaultPresetKey = "balanced";
-export const weightStep = 0.25;
-export const minUserWeightMultiplier = 0.25;
-export const maxUserWeightMultiplier = 2;
+export const weightStep = 1;
+export const minUserWeightMultiplier = 1;
+export const maxUserWeightMultiplier = 10;
 export const themeWeightStep = 1;
 export const minThemeWeightMultiplier = 1;
 export const maxThemeWeightMultiplier = 10;

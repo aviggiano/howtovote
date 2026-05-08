@@ -551,6 +551,7 @@ export function AllocatorPage({
                           description={`Current multiplier for ${criterion.label.toLowerCase()}.`}
                           valueLabel={formatMultiplier(
                             criterionMultipliers[criterion.key],
+                            0,
                           )}
                           onDecrease={() =>
                             updateCriterionMultiplier(criterion.key, -1)
@@ -667,7 +668,10 @@ export function AllocatorPage({
                         className="bg-primary text-primary-foreground rounded-full"
                       >
                         {criterion.shortLabel}{" "}
-                        {formatMultiplier(criterionMultipliers[criterion.key])}
+                        {formatMultiplier(
+                          criterionMultipliers[criterion.key],
+                          0,
+                        )}
                       </Badge>
                     ))
                   ) : (

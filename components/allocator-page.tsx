@@ -8,7 +8,10 @@ import {
   Minus,
   Plus,
   RefreshCw,
+  ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
+  Target,
 } from "lucide-react";
 import { AllocationSummary } from "@/components/allocator/allocation-summary";
 import { ProjectTable } from "@/components/allocator/project-table";
@@ -421,6 +424,7 @@ export function AllocatorPage({
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
+                <ShieldCheck className="text-primary h-5 w-5" />
                 <p className="eyebrow text-muted-foreground">Projects</p>
                 <p className="text-foreground mt-2 text-2xl font-semibold">
                   {projects.length}
@@ -430,6 +434,7 @@ export function AllocatorPage({
                 </p>
               </div>
               <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
+                <Sparkles className="text-primary h-5 w-5" />
                 <p className="eyebrow text-muted-foreground">Presets</p>
                 <p className="text-foreground mt-2 text-2xl font-semibold">
                   {presets.length}
@@ -439,6 +444,7 @@ export function AllocatorPage({
                 </p>
               </div>
               <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
+                <SlidersHorizontal className="text-primary h-5 w-5" />
                 <p className="eyebrow text-muted-foreground">Signals</p>
                 <p className="text-foreground mt-2 text-2xl font-semibold">
                   {criterionDefinitions.length}
@@ -448,6 +454,7 @@ export function AllocatorPage({
                 </p>
               </div>
               <div className="border-border/75 bg-background/78 rounded-[1.45rem] border px-4 py-3.5">
+                <Target className="text-primary h-5 w-5" />
                 <p className="eyebrow text-muted-foreground">Theme baskets</p>
                 <p className="text-foreground mt-2 text-2xl font-semibold">
                   {themeDefinitions.length}

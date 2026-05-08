@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useDeferredValue, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ExternalLink,
   Link2,
@@ -56,10 +56,7 @@ import {
   type ThemeKey,
   type ThemeWeights,
 } from "@/lib/types";
-import {
-  serializeCriterionMultipliers,
-  serializeThemeMultipliers,
-} from "@/lib/url-state";
+import { buildSharePath } from "@/lib/url-state";
 
 type AllocatorPageProps = {
   projects: AllocationProject[];
@@ -243,7 +240,6 @@ export function AllocatorPage({
   qfEstimateContext,
 }: AllocatorPageProps) {
   const router = useRouter();
-  const pathname = usePathname();
 
   const [presetKey, setPresetKey] = useState(
     initialPresetKey || defaultPresetKey,
@@ -302,31 +298,21 @@ export function AllocatorPage({
       next.criterionMultipliers ?? criterionMultipliers;
     const nextThemeMultipliers = next.themeMultipliers ?? themeMultipliers;
 
-    const params = new URLSearchParams();
-
     setMaxProjects(nextMaxProjects);
     setPresetKey(nextPresetKey);
     setCriterionMultipliers(nextCriterionMultipliers);
     setThemeMultipliers(nextThemeMultipliers);
 
-    params.set("max", String(nextMaxProjects));
-    params.set("preset", nextPresetKey);
-
-    const serializedCriteria = serializeCriterionMultipliers(
-      nextCriterionMultipliers,
-    );
-    const serializedThemes = serializeThemeMultipliers(nextThemeMultipliers);
-
-    if (serializedCriteria) {
-      params.set("cw", serializedCriteria);
-    }
-
-    if (serializedThemes) {
-      params.set("tw", serializedThemes);
-    }
-
     startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      router.replace(
+        buildSharePath({
+          maxProjects: nextMaxProjects,
+          presetKey: nextPresetKey,
+          criterionMultipliers: nextCriterionMultipliers,
+          themeMultipliers: nextThemeMultipliers,
+        }),
+        { scroll: false },
+      );
     });
   }
 
@@ -369,7 +355,17 @@ export function AllocatorPage({
   }
 
   async function copyShareLink() {
-    await navigator.clipboard.writeText(window.location.href);
+    const shareUrl = new URL(
+      buildSharePath({
+        maxProjects,
+        presetKey,
+        criterionMultipliers,
+        themeMultipliers,
+      }),
+      window.location.origin,
+    ).toString();
+
+    await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   }

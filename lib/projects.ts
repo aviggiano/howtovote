@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { generatedProjectCurations } from "@/data/curation.generated";
 import { getEthereumSecurityQfEstimates } from "@/lib/fetch-qf-estimates";
 import { buildHeuristicCuration } from "@/lib/curation";
@@ -13,25 +14,27 @@ function getProjectSlug(projectUrl: string) {
   return new URL(projectUrl).pathname.replace(/^\/project\//, "");
 }
 
-export async function getAllocationDataset(): Promise<AllocationDataset> {
-  const [projects, qfEstimates] = await Promise.all([
-    getSheetProjects(),
-    getEthereumSecurityQfEstimates(),
-  ]);
+export const getAllocationDataset = cache(
+  async (): Promise<AllocationDataset> => {
+    const [projects, qfEstimates] = await Promise.all([
+      getSheetProjects(),
+      getEthereumSecurityQfEstimates(),
+    ]);
 
-  return {
-    projects: projects.map((project) => ({
-      ...project,
-      curation:
-        generatedProjectCurations[project.projectUrl] ??
-        buildHeuristicCuration(project),
-      qfEstimate:
-        qfEstimates.estimatesBySlug.get(getProjectSlug(project.projectUrl)) ??
-        null,
-    })),
-    qfEstimateContext: qfEstimates.context,
-  };
-}
+    return {
+      projects: projects.map((project) => ({
+        ...project,
+        curation:
+          generatedProjectCurations[project.projectUrl] ??
+          buildHeuristicCuration(project),
+        qfEstimate:
+          qfEstimates.estimatesBySlug.get(getProjectSlug(project.projectUrl)) ??
+          null,
+      })),
+      qfEstimateContext: qfEstimates.context,
+    };
+  },
+);
 
 export async function getAllocationProjects(): Promise<AllocationProject[]> {
   const { projects } = await getAllocationDataset();

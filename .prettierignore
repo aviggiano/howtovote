@@ -1,6 +1,7 @@
 .next
 node_modules
 coverage
+.worktrees
 data/curation.generated.ts
 AGENTS.md
 CLAUDE.md

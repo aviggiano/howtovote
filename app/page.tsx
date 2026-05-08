@@ -1,43 +1,48 @@
+import type { Metadata } from "next";
 import { AllocatorPage } from "@/components/allocator-page";
 import { getAllocationDataset } from "@/lib/projects";
 import {
-  parseCriterionMultipliersParam,
-  parseMaxProjectsParam,
-  parsePresetParam,
-  parseThemeMultipliersParam,
+  buildSharePath,
+  getShareableAllocatorStateFromSearchParams,
+  isDefaultShareState,
 } from "@/lib/url-state";
+import {
+  buildShareMetadata,
+  getSharePreviewSummary,
+} from "@/lib/share-preview";
 
 type HomeProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function getSingleParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
+export async function generateMetadata({
+  searchParams,
+}: HomeProps): Promise<Metadata> {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const shareState =
+    getShareableAllocatorStateFromSearchParams(resolvedSearchParams);
+  const { projects } = await getAllocationDataset();
+
+  return buildShareMetadata(
+    shareState,
+    getSharePreviewSummary(projects, shareState),
+    isDefaultShareState(shareState) ? "/" : buildSharePath(shareState),
+  );
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  const { projects, qfEstimateContext } = await getAllocationDataset();
   const resolvedSearchParams = (await searchParams) ?? {};
-  const maxProjects = parseMaxProjectsParam(
-    getSingleParam(resolvedSearchParams.max),
-  );
-  const presetKey = parsePresetParam(
-    getSingleParam(resolvedSearchParams.preset),
-  );
-  const criterionMultipliers = parseCriterionMultipliersParam(
-    getSingleParam(resolvedSearchParams.cw),
-  );
-  const themeMultipliers = parseThemeMultipliersParam(
-    getSingleParam(resolvedSearchParams.tw),
-  );
+  const shareState =
+    getShareableAllocatorStateFromSearchParams(resolvedSearchParams);
+  const { projects, qfEstimateContext } = await getAllocationDataset();
 
   return (
     <AllocatorPage
       projects={projects}
-      initialMaxProjects={maxProjects}
-      initialPresetKey={presetKey}
-      initialCriterionMultipliers={criterionMultipliers}
-      initialThemeMultipliers={themeMultipliers}
+      initialMaxProjects={shareState.maxProjects}
+      initialPresetKey={shareState.presetKey}
+      initialCriterionMultipliers={shareState.criterionMultipliers}
+      initialThemeMultipliers={shareState.themeMultipliers}
       qfEstimateContext={qfEstimateContext}
     />
   );

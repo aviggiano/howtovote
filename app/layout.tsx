@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Source_Serif_4 } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const bodyFont = Manrope({
@@ -14,6 +15,7 @@ const headingFont = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: "How To Vote",
   description:
     "A shareable Ethereum Security round allocator for donors who want a reasoned recommendation instead of a blank spreadsheet.",

@@ -73,6 +73,8 @@ export type SheetProject = {
   socialLinks: SocialLink[];
 };
 
+export type CurationSource = "generated" | "manual" | "llm";
+
 export type ProjectCuration = {
   primaryCategory: ThemeKey;
   themeBaskets: ThemeKey[];
@@ -83,7 +85,35 @@ export type ProjectCuration = {
   executionClarity: ProjectScore;
   confidenceScore: number;
   notes: string;
-  source: "generated" | "manual";
+  source: CurationSource;
+};
+
+export type ProjectReviewSiteProfile = {
+  canonicalUrl: string | null;
+  fetchedUrl: string | null;
+  ok: boolean;
+  title: string;
+  description: string;
+  text: string;
+};
+
+export type ProjectScoringInput = {
+  slug: string;
+  project: SheetProject;
+  siteProfile: ProjectReviewSiteProfile;
+  preparedAt: string;
+  reviewBrief: string;
+};
+
+export type CriterionRationale = Record<CriterionKey, string>;
+
+export type ProjectScoringResult = {
+  projectUrl: string;
+  title: string;
+  reviewedAt: string;
+  evidence: string[];
+  rationale: CriterionRationale;
+  curation: ProjectCuration;
 };
 
 export type AllocationProject = SheetProject & {

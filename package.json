@@ -11,6 +11,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "generate:curation": "tsx scripts/generate-curation.ts",
+    "prepare:scoring": "tsx scripts/export-project-scoring-inputs.ts",
+    "merge:scoring": "tsx scripts/merge-project-scoring-results.ts",
     "validate:curation": "tsx scripts/validate-curation.ts",
     "check": "npm run lint && npm run typecheck && npm run format:check && npm run validate:curation && npm run build"
   },

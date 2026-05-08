@@ -280,6 +280,11 @@ const manualOverrides: Record<string, ProjectOverride> = {
     themeBaskets: ["wallet-app-user-safety", "core-protocol-client-security"],
     confidenceScore: 0.82,
   },
+  "https://qf.giveth.io/project/echidna:-a-fast-smart-contract-fuzzer": {
+    trackRecord: 4,
+    underfundedness: 4,
+    confidenceScore: 0.98,
+  },
   "https://qf.giveth.io/project/fuzzing-for-zk-systems-privacy-is-normal-but-not-safe":
     {
       primaryCategory: "tooling-fuzzing-formal-verification",

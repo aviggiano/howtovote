@@ -47,6 +47,32 @@ To confirm that every sheet project has a matching local curation entry:
 npm run validate:curation
 ```
 
+## LLM scoring workflow
+
+Repo-local skill files live under `.codex/skills/project-scoring/`.
+
+That skill expects this workflow:
+
+1. Prepare per-project evidence bundles from the live sheet plus linked website:
+
+```bash
+npm run prepare:scoring
+```
+
+This writes JSON inputs to `tmp/project-scoring-inputs/`.
+
+2. Use the `project-scoring` skill to review those inputs in waves of at most
+   four subagents at a time, using the checked-in prompt and rubric references.
+
+3. Merge the structured scoring results back into the app-local curation file:
+
+```bash
+npm run merge:scoring
+```
+
+This expects JSON outputs in `tmp/project-scoring-results/` and rewrites
+`data/curation.generated.ts` with `source: "llm"` entries.
+
 ## Quality gates
 
 ```bash

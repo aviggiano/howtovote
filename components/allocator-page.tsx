@@ -32,6 +32,10 @@ import {
   getGivethRoundUrl,
 } from "@/data/allocator-metadata";
 import {
+  curationTransparencyNote,
+  reusableCurationPrompt,
+} from "@/data/curation-transparency";
+import {
   defaultBudget,
   defaultMaxProjects,
   defaultPresetKey,
@@ -731,16 +735,35 @@ export function AllocatorPage({
           qfEstimateContext={qfEstimateContext}
         />
 
-        <footer className="border-border/70 text-muted-foreground flex flex-wrap items-center justify-center gap-2 border-t pt-2 pb-8 text-sm">
-          <span>Find more from the builder on</span>
-          <a
-            href="https://x.com/aviggiano"
-            target="_blank"
-            rel="noreferrer"
-            className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
-          >
-            X (formerly Twitter)
-          </a>
+        <footer className="border-border/70 mt-8 border-t pt-4 pb-8">
+          <div className="mx-auto flex max-w-5xl flex-col gap-4 text-sm">
+            <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-2">
+              <span>Find more from the builder on</span>
+              <a
+                href="https://x.com/aviggiano"
+                target="_blank"
+                rel="noreferrer"
+                className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
+              >
+                X (formerly Twitter)
+              </a>
+            </div>
+            <details className="bg-card/70 border-border/70 rounded-3xl border px-4 py-3">
+              <summary className="text-foreground cursor-pointer font-medium">
+                How the curation scores were produced
+              </summary>
+              <div className="text-muted-foreground mt-3 space-y-3">
+                <p>{curationTransparencyNote}</p>
+                <p>
+                  Reusable review prompt: This is the closest prompt-form rubric
+                  for anyone who wants to sanity check the scores independently.
+                </p>
+                <pre className="bg-muted/60 text-foreground overflow-x-auto rounded-2xl border p-4 text-xs leading-6 whitespace-pre-wrap">
+                  {reusableCurationPrompt}
+                </pre>
+              </div>
+            </details>
+          </div>
         </footer>
       </div>
     </main>

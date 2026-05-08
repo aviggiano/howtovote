@@ -3,7 +3,6 @@
 import { startTransition, useDeferredValue, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  CircleDollarSign,
   ExternalLink,
   Link2,
   Minus,
@@ -27,7 +26,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  OFFICIAL_PROJECT_SHEET_TITLE,
   OFFICIAL_PROJECT_SHEET_URL,
+  PROJECT_SPREADSHEET_LABEL,
   getGivethRoundUrl,
 } from "@/data/allocator-metadata";
 import {
@@ -59,7 +60,6 @@ import {
 
 type AllocatorPageProps = {
   projects: AllocationProject[];
-  initialBudget: number;
   initialMaxProjects: number;
   initialPresetKey: string;
   initialCriterionMultipliers: CriterionWeights;
@@ -75,14 +75,6 @@ type WeightStepperProps = {
   onIncrease: () => void;
 };
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: value >= 100 ? 0 : 2,
-  }).format(value);
-}
-
 function formatMultiplier(value: number) {
   return `${value.toFixed(2)}x`;
 }
@@ -94,11 +86,6 @@ function clampWeight(value: number) {
       Math.min(maxUserWeightMultiplier, value),
     ).toFixed(2),
   );
-}
-
-function parseBudgetValue(value: string) {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultBudget;
 }
 
 function parseMaxProjectsValue(value: string, projectCount: number) {
@@ -147,7 +134,7 @@ function DataChipLink({ href, children, primary = false }: DataChipLinkProps) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px ${
+      className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm font-medium transition hover:-translate-y-px ${
         primary
           ? "bg-primary text-primary-foreground border-primary/80"
           : "border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background"
@@ -169,7 +156,7 @@ function DataChipButton({ children, onClick }: DataChipButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className="border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
+      className="border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
     >
       {children}
       <Link2 className="h-3.5 w-3.5" />
@@ -228,7 +215,6 @@ function WeightStepper({
 
 export function AllocatorPage({
   projects,
-  initialBudget,
   initialMaxProjects,
   initialPresetKey,
   initialCriterionMultipliers,
@@ -241,7 +227,6 @@ export function AllocatorPage({
   const [presetKey, setPresetKey] = useState(
     initialPresetKey || defaultPresetKey,
   );
-  const [budget, setBudget] = useState(initialBudget || defaultBudget);
   const [maxProjects, setMaxProjects] = useState(
     initialMaxProjects || defaultMaxProjects,
   );
@@ -256,7 +241,7 @@ export function AllocatorPage({
   const deferredQuery = useDeferredValue(query);
 
   const recommendations = scoreProjects(projects, {
-    budget,
+    budget: defaultBudget,
     maxProjects,
     presetKey,
     criterionMultipliers,
@@ -285,13 +270,11 @@ export function AllocatorPage({
   );
 
   function updateUrlState(next: {
-    budget?: number;
     maxProjects?: number;
     presetKey?: string;
     criterionMultipliers?: CriterionWeights;
     themeMultipliers?: ThemeWeights;
   }) {
-    const nextBudget = next.budget ?? budget;
     const nextMaxProjects = next.maxProjects ?? maxProjects;
     const nextPresetKey = next.presetKey ?? presetKey;
     const nextCriterionMultipliers =
@@ -300,13 +283,11 @@ export function AllocatorPage({
 
     const params = new URLSearchParams();
 
-    setBudget(nextBudget);
     setMaxProjects(nextMaxProjects);
     setPresetKey(nextPresetKey);
     setCriterionMultipliers(nextCriterionMultipliers);
     setThemeMultipliers(nextThemeMultipliers);
 
-    params.set("budget", String(nextBudget));
     params.set("max", String(nextMaxProjects));
     params.set("preset", nextPresetKey);
 
@@ -372,7 +353,7 @@ export function AllocatorPage({
                   Ethereum Security Round
                 </DataChipLink>
                 <DataChipLink href={OFFICIAL_PROJECT_SHEET_URL}>
-                  Official project sheet
+                  {PROJECT_SPREADSHEET_LABEL}
                 </DataChipLink>
                 <DataChipButton onClick={copyShareLink}>
                   {copied ? "Copied share URL" : "Share allocator state"}
@@ -385,8 +366,8 @@ export function AllocatorPage({
                 <p className="text-muted-foreground max-w-3xl text-base leading-8 sm:text-lg">
                   Start from a preset, then change the actual weights. You can
                   favor tooling, deprioritize other baskets, raise track record,
-                  and cap the final recommendation to a smaller number of
-                  projects like 10.
+                  and split 100% of your ballot across a smaller set of
+                  projects.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -409,21 +390,21 @@ export function AllocatorPage({
                   </p>
                 </div>
                 <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
-                  <CircleDollarSign className="text-primary h-5 w-5" />
+                  <SlidersHorizontal className="text-primary h-5 w-5" />
                   <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
-                    Budget
+                    Signals
                   </p>
                   <p className="text-foreground mt-1 text-3xl font-semibold">
-                    {formatCurrency(budget)}
+                    {criterionDefinitions.length}
                   </p>
                 </div>
                 <div className="border-border/80 bg-background/75 rounded-3xl border p-4">
                   <Target className="text-primary h-5 w-5" />
                   <p className="text-muted-foreground mt-3 text-sm font-semibold tracking-[0.18em] uppercase">
-                    Max ballot
+                    Theme baskets
                   </p>
                   <p className="text-foreground mt-1 text-3xl font-semibold">
-                    {maxProjects}
+                    {themeDefinitions.length}
                   </p>
                 </div>
               </div>
@@ -436,9 +417,10 @@ export function AllocatorPage({
                 </CardTitle>
                 <CardDescription className="max-w-3xl leading-6">
                   Presets are only a starting point. The recommendation updates
-                  when you change budget, ballot size, signal weights, or theme
-                  weights. Project metadata comes from the official sheet and
-                  round stats refresh from Giveth roughly every{" "}
+                  when you change ballot size, signal weights, or theme weights.
+                  Project metadata comes from the {OFFICIAL_PROJECT_SHEET_TITLE}{" "}
+                  spreadsheet, which is synced by a third party, and round stats
+                  refresh from Giveth roughly every{" "}
                   {qfEstimateContext.refreshIntervalMinutes} minutes.
                 </CardDescription>
               </CardHeader>
@@ -459,7 +441,7 @@ export function AllocatorPage({
                             onClick={() =>
                               updateUrlState({ presetKey: preset.key })
                             }
-                            className={`rounded-3xl border px-4 py-4 text-left transition ${
+                            className={`cursor-pointer rounded-3xl border px-4 py-4 text-left transition ${
                               active
                                 ? "border-primary bg-primary/10 shadow-sm"
                                 : "border-border/70 bg-background/70 hover:border-primary/40"
@@ -481,19 +463,11 @@ export function AllocatorPage({
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
                       <div className="space-y-3">
                         <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                          Budget
+                          Allocation basis
                         </p>
-                        <Input
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={budget}
-                          onChange={(event) =>
-                            updateUrlState({
-                              budget: parseBudgetValue(event.target.value),
-                            })
-                          }
-                        />
+                        <div className="border-border/70 bg-secondary/35 text-foreground rounded-2xl border px-3 py-2 text-lg font-semibold">
+                          {defaultBudget}%
+                        </div>
                       </div>
                       <div className="space-y-3">
                         <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
@@ -517,8 +491,9 @@ export function AllocatorPage({
                       </div>
                     </div>
                     <p className="text-muted-foreground mt-4 text-sm leading-6">
-                      Share state is encoded directly in the URL. The chip above
-                      copies the current allocator configuration.
+                      Recommendations are expressed as shares of a 100% ballot.
+                      Share state is encoded directly in the URL, and the chip
+                      above copies the current allocator configuration.
                     </p>
                   </div>
                 </div>
@@ -600,7 +575,6 @@ export function AllocatorPage({
         <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <AllocationSummary
             projects={recommendations}
-            budget={budget}
             maxProjects={maxProjects}
           />
           <Card className="border-border/80 bg-card/88 shadow-sm">

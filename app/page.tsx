@@ -1,7 +1,6 @@
 import { AllocatorPage } from "@/components/allocator-page";
 import { getAllocationDataset } from "@/lib/projects";
 import {
-  parseBudgetParam,
   parseCriterionMultipliersParam,
   parseMaxProjectsParam,
   parsePresetParam,
@@ -19,7 +18,6 @@ function getSingleParam(value: string | string[] | undefined) {
 export default async function Home({ searchParams }: HomeProps) {
   const { projects, qfEstimateContext } = await getAllocationDataset();
   const resolvedSearchParams = (await searchParams) ?? {};
-  const budget = parseBudgetParam(getSingleParam(resolvedSearchParams.budget));
   const maxProjects = parseMaxProjectsParam(
     getSingleParam(resolvedSearchParams.max),
   );
@@ -36,7 +34,6 @@ export default async function Home({ searchParams }: HomeProps) {
   return (
     <AllocatorPage
       projects={projects}
-      initialBudget={budget}
       initialMaxProjects={maxProjects}
       initialPresetKey={presetKey}
       initialCriterionMultipliers={criterionMultipliers}

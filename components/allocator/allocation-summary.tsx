@@ -14,17 +14,8 @@ import type { ProjectRecommendation } from "@/lib/types";
 
 type AllocationSummaryProps = {
   projects: ProjectRecommendation[];
-  budget: number;
   maxProjects: number;
 };
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: value >= 100 ? 0 : 2,
-  }).format(value);
-}
 
 function formatPercent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
@@ -32,7 +23,6 @@ function formatPercent(value: number) {
 
 export function AllocationSummary({
   projects,
-  budget,
   maxProjects,
 }: AllocationSummaryProps) {
   const includedProjects = projects.filter(
@@ -50,16 +40,14 @@ export function AllocationSummary({
             </CardTitle>
             <CardDescription className="mt-2 max-w-2xl text-sm leading-6">
               This is the full current ballot in rank order, not just a fixed
-              top-five slice.
+              top-five slice, expressed as shares of a 100% ballot.
             </CardDescription>
           </div>
           <div className="border-primary/15 bg-background/70 rounded-2xl border px-4 py-3 text-right">
             <p className="text-muted-foreground text-xs font-semibold tracking-[0.24em] uppercase">
-              Budget
+              Allocation basis
             </p>
-            <p className="text-foreground mt-1 text-2xl font-semibold">
-              {formatCurrency(budget)}
-            </p>
+            <p className="text-foreground mt-1 text-2xl font-semibold">100%</p>
           </div>
         </div>
       </CardHeader>
@@ -120,10 +108,10 @@ export function AllocationSummary({
                 </div>
                 <div className="min-w-32 text-right">
                   <p className="text-foreground text-xl font-semibold">
-                    {formatCurrency(project.allocationAmount)}
+                    {formatPercent(project.allocationPercent)}
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    {formatPercent(project.allocationPercent)}
+                    Score {project.score.toFixed(2)}
                   </p>
                 </div>
               </div>

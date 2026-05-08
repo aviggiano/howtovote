@@ -34,8 +34,13 @@ import {
   type QfEstimateContext,
 } from "@/lib/types";
 import {
+  GIVETH_COCM_ANNOUNCEMENT_URL,
+  GIVETH_GRAPHQL_URL,
+  GIVETH_QF_DOCS_URL,
   OFFICIAL_PROJECT_SHEET_TITLE,
   OFFICIAL_PROJECT_SHEET_URL,
+  PROJECT_SPREADSHEET_LABEL,
+  getGivethRoundUrl,
 } from "@/data/allocator-metadata";
 import { themeDefinitionByKey } from "@/data/themes";
 import { cn } from "@/lib/utils";
@@ -69,6 +74,13 @@ function formatConfidence(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
+function getSignalTotal(project: ProjectRecommendation) {
+  return criterionDefinitions.reduce(
+    (total, criterion) => total + project.curation[criterion.key],
+    0,
+  );
+}
+
 function scoreTone(score: number) {
   if (score >= 4.5) {
     return "text-primary";
@@ -84,6 +96,25 @@ function getMaxValue(
   selector: (project: ProjectRecommendation) => number,
 ) {
   return projects.reduce((max, project) => Math.max(max, selector(project)), 0);
+}
+
+type ReferenceChipLinkProps = {
+  href: string;
+  label: string;
+};
+
+function ReferenceChipLink({ href, label }: ReferenceChipLinkProps) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="border-border/80 bg-background/75 text-foreground hover:border-primary/35 hover:bg-background inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
+    >
+      {label}
+      <ExternalLink className="h-3.5 w-3.5" />
+    </a>
+  );
 }
 
 type NumericBarCellProps = {
@@ -118,6 +149,35 @@ function NumericBarCell({
   );
 }
 
+type ScoreCellProps = {
+  max: number;
+  project: ProjectRecommendation;
+};
+
+function ScoreCell({ max, project }: ScoreCellProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            className="block w-full cursor-help text-left outline-none"
+          />
+        }
+      >
+        <NumericBarCell
+          value={project.score}
+          max={max}
+          primary={project.score.toFixed(2)}
+        />
+      </TooltipTrigger>
+      <TooltipContent>
+        Confidence score: {formatConfidence(project.curation.confidenceScore)}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function ProjectTable({
   projects,
   query,
@@ -129,14 +189,11 @@ export function ProjectTable({
   ]);
   const projectCapUsd =
     qfEstimateContext.matchingPoolUsd * qfEstimateContext.maxPerProjectRatio;
+  const roundUrl = getGivethRoundUrl(qfEstimateContext.roundSlug);
   const scoreMax = getMaxValue(projects, (project) => project.score);
   const allocationPercentMax = getMaxValue(
     projects,
     (project) => project.allocationPercent,
-  );
-  const allocationAmountMax = getMaxValue(
-    projects,
-    (project) => project.allocationAmount,
   );
   const qfRaisedMax = getMaxValue(
     projects,
@@ -201,6 +258,7 @@ export function ProjectTable({
       },
     },
     {
+      accessorFn: getSignalTotal,
       id: "metrics",
       header: "Signals (1-5)",
       cell: ({ row }) => {
@@ -221,40 +279,14 @@ export function ProjectTable({
                 {criterion.shortLabel} {project.curation[criterion.key]}
               </Badge>
             ))}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Badge
-                    variant="outline"
-                    className="bg-background/80 cursor-help rounded-full"
-                  />
-                }
-              >
-                Confidence
-              </TooltipTrigger>
-              <TooltipContent>
-                Confidence score:{" "}
-                {formatConfidence(project.curation.confidenceScore)}
-              </TooltipContent>
-            </Tooltip>
-            <Badge variant="outline" className="bg-background/80 rounded-full">
-              {project.curation.source === "manual" ? "Reviewed" : "Generated"}
-            </Badge>
           </div>
         );
       },
-      enableSorting: false,
     },
     {
       accessorKey: "score",
       header: "Score",
-      cell: ({ row }) => (
-        <NumericBarCell
-          value={row.original.score}
-          max={scoreMax}
-          primary={row.original.score.toFixed(2)}
-        />
-      ),
+      cell: ({ row }) => <ScoreCell project={row.original} max={scoreMax} />,
     },
     {
       accessorKey: "allocationPercent",
@@ -264,17 +296,6 @@ export function ProjectTable({
           value={row.original.allocationPercent}
           max={allocationPercentMax}
           primary={formatPercent(row.original.allocationPercent)}
-        />
-      ),
-    },
-    {
-      accessorKey: "allocationAmount",
-      header: "Amount",
-      cell: ({ row }) => (
-        <NumericBarCell
-          value={row.original.allocationAmount}
-          max={allocationAmountMax}
-          primary={formatCurrency(row.original.allocationAmount)}
         />
       ),
     },
@@ -345,7 +366,8 @@ export function ProjectTable({
             </CardTitle>
             <p className="text-muted-foreground max-w-2xl text-sm leading-6">
               Sort the allocator output, compare it against live round traction,
-              and cross-check everything against the official sheet source.
+              and cross-check everything against the third-party synced round
+              spreadsheet.
             </p>
           </div>
           <div className="relative w-full md:w-80">
@@ -438,11 +460,24 @@ export function ProjectTable({
                       </div>
                       <div className="text-right">
                         <p className="text-foreground font-semibold">
-                          {formatCurrency(project.allocationAmount)}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
                           {formatPercent(project.allocationPercent)}
                         </p>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <button
+                                type="button"
+                                className="text-muted-foreground cursor-help text-sm"
+                              />
+                            }
+                          >
+                            Score {project.score.toFixed(2)}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Confidence score:{" "}
+                            {formatConfidence(project.curation.confidenceScore)}
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
@@ -476,22 +511,6 @@ export function ProjectTable({
                           {project.curation[criterion.key]}
                         </Badge>
                       ))}
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Badge
-                              variant="outline"
-                              className="bg-background/80 cursor-help rounded-full"
-                            />
-                          }
-                        >
-                          Confidence
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Confidence score:{" "}
-                          {formatConfidence(project.curation.confidenceScore)}
-                        </TooltipContent>
-                      </Tooltip>
                     </div>
                     <div className="bg-secondary mt-4 h-2 overflow-hidden rounded-full">
                       <div
@@ -534,7 +553,7 @@ export function ProjectTable({
               })}
             </div>
           </div>
-          <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
+          <div className="space-y-4">
             <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
               <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
                 Classification Methodology
@@ -547,12 +566,13 @@ export function ProjectTable({
                   rel="noreferrer"
                   className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
                 >
-                  official project sheet
+                  {PROJECT_SPREADSHEET_LABEL}
                 </a>
-                . Each current participant is reviewed against that sheet
-                context and its linked website. The curation layer assigns one
-                primary category, up to one secondary theme, five signal scores
-                from 1 to 5, and a confidence score from 0 to 1.
+                , which is synced by a third party. Each current participant is
+                reviewed against that spreadsheet context and its linked
+                website. The curation layer assigns one primary category, up to
+                one secondary theme, five signal scores from 1 to 5, and a
+                confidence score from 0 to 1 that is surfaced on score hover.
               </p>
               <p className="text-muted-foreground mt-3 text-sm leading-6">
                 Confidence is higher when the project website and sheet summary
@@ -569,7 +589,7 @@ export function ProjectTable({
                 weights and your criterion multipliers are applied, then
                 multiplied by the average of the project&apos;s matched theme
                 weights. Allocation = project score divided by the sum of the
-                top N project scores, then multiplied by budget.
+                top N project scores, surfaced as a share of a 100% ballot.
               </p>
               <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">
                 {criterionDefinitions.map((criterion) => (
@@ -603,7 +623,8 @@ export function ProjectTable({
                 and{" "}
                 <span className="text-foreground font-medium">QF Donors</span>{" "}
                 use public {qfEstimateContext.roundName} donations that meet the
-                round&apos;s $1 minimum, aggregated by donor wallet.{" "}
+                round&apos;s $1 minimum, aggregated by donor wallet from
+                Giveth&apos;s public GraphQL data.{" "}
                 <span className="text-foreground font-medium">
                   QF Est. Match
                 </span>{" "}
@@ -619,6 +640,21 @@ export function ProjectTable({
                 badge 4x donor weights, Passport or first-touch checks, or
                 post-round fraud review.
               </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <ReferenceChipLink href={roundUrl} label="Round page" />
+                <ReferenceChipLink
+                  href={GIVETH_QF_DOCS_URL}
+                  label="Giveth QF docs"
+                />
+                <ReferenceChipLink
+                  href={GIVETH_COCM_ANNOUNCEMENT_URL}
+                  label="COCM announcement"
+                />
+                <ReferenceChipLink
+                  href={GIVETH_GRAPHQL_URL}
+                  label="Public GraphQL API"
+                />
+              </div>
             </div>
           </div>
         </CardContent>

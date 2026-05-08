@@ -32,6 +32,9 @@ export const defaultPresetKey = "balanced";
 export const weightStep = 0.25;
 export const minUserWeightMultiplier = 0.25;
 export const maxUserWeightMultiplier = 2;
+export const themeWeightStep = 1;
+export const minThemeWeightMultiplier = 1;
+export const maxThemeWeightMultiplier = 10;
 export const unitCriterionMultipliers = createCriterionWeights({});
 export const unitThemeMultipliers = createThemeWeights({});
 

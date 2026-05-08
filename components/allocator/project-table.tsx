@@ -52,6 +52,10 @@ type ProjectTableProps = {
   qfEstimateContext: QfEstimateContext;
 };
 
+function getProjectInitial(project: ProjectRecommendation) {
+  return project.title.trim().charAt(0).toUpperCase() || "?";
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -117,6 +121,60 @@ function ReferenceChipLink({ href, label }: ReferenceChipLinkProps) {
   );
 }
 
+type ProjectIdentityProps = {
+  project: ProjectRecommendation;
+};
+
+function ProjectIdentity({ project }: ProjectIdentityProps) {
+  return (
+    <a
+      href={project.projectUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="group block"
+    >
+      <div className="flex items-start gap-3">
+        {project.imageUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={project.imageUrl}
+              alt=""
+              loading="lazy"
+              className="border-border/70 h-11 w-11 shrink-0 rounded-2xl border object-cover"
+            />
+          </>
+        ) : (
+          <div className="bg-secondary text-secondary-foreground flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold">
+            {getProjectInitial(project)}
+          </div>
+        )}
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-foreground group-hover:text-primary font-semibold">
+                {project.title}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {project.ownerName}
+              </p>
+            </div>
+            <ExternalLink className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+          </div>
+          <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            {project.ownerTwitterName ? (
+              <span>@{project.ownerTwitterName}</span>
+            ) : null}
+            {project.updatesCount > 0 ? (
+              <span>{formatInteger(project.updatesCount)} updates</span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </a>
+  );
+}
+
 type NumericBarCellProps = {
   value: number;
   max: number;
@@ -134,13 +192,13 @@ function NumericBarCell({
   const visibleWidth = value > 0 ? Math.max(width, 8) : 0;
 
   return (
-    <div className="border-border/70 bg-background/80 relative min-w-24 overflow-hidden rounded-2xl border px-3 py-2 text-right">
+    <div className="border-border/70 bg-background/80 relative min-w-[4.75rem] overflow-hidden rounded-2xl border px-2.5 py-2 text-right">
       <div
         className="bg-primary/14 absolute inset-y-1 left-1 rounded-xl"
         style={{ width: `${visibleWidth}%` }}
       />
       <div className="relative">
-        <p className="text-foreground font-medium">{primary}</p>
+        <p className="text-foreground font-medium tabular-nums">{primary}</p>
         {secondary ? (
           <p className="text-muted-foreground mt-0.5 text-xs">{secondary}</p>
         ) : null}
@@ -220,24 +278,9 @@ export function ProjectTable({
 
         return (
           <div className="space-y-2">
-            <div className="flex items-start gap-2">
-              <div>
-                <a
-                  href={project.projectUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-foreground hover:text-primary font-semibold"
-                >
-                  {project.title}
-                </a>
-                <p className="text-muted-foreground text-sm">
-                  {project.ownerName}
-                </p>
-              </div>
-              <ExternalLink className="text-muted-foreground mt-1 h-4 w-4" />
-            </div>
+            <ProjectIdentity project={project} />
             <div className="flex flex-wrap gap-1.5">
-              <Badge className="rounded-full">
+              <Badge className="rounded-full text-[11px]">
                 {
                   themeDefinitionByKey[project.curation.primaryCategory]
                     .shortLabel
@@ -247,7 +290,7 @@ export function ProjectTable({
                 <Badge
                   key={themeKey}
                   variant="outline"
-                  className="bg-background/80 rounded-full"
+                  className="bg-background/80 rounded-full text-[11px]"
                 >
                   {themeDefinitionByKey[themeKey].shortLabel}
                 </Badge>
@@ -272,7 +315,7 @@ export function ProjectTable({
                 variant="secondary"
                 title={`${criterion.label}. ${criterion.description}`}
                 className={cn(
-                  "border-border/50 bg-secondary/60 rounded-full border",
+                  "border-border/50 bg-secondary/60 rounded-full border text-[11px]",
                   scoreTone(project.curation[criterion.key]),
                 )}
               >
@@ -382,8 +425,8 @@ export function ProjectTable({
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="border-border/80 rounded-3xl border">
-            <div className="hidden overflow-x-auto md:block">
-              <Table>
+            <div className="hidden md:block">
+              <Table className="table-fixed">
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
@@ -445,18 +488,8 @@ export function ProjectTable({
                     className="border-border/70 bg-background/80 rounded-3xl border p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-2">
-                        <a
-                          href={project.projectUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-foreground hover:text-primary font-semibold"
-                        >
-                          {project.title}
-                        </a>
-                        <p className="text-muted-foreground text-sm">
-                          {project.ownerName}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <ProjectIdentity project={project} />
                       </div>
                       <div className="text-right">
                         <p className="text-foreground font-semibold">
@@ -481,7 +514,7 @@ export function ProjectTable({
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      <Badge className="rounded-full">
+                      <Badge className="rounded-full text-[11px]">
                         {
                           themeDefinitionByKey[project.curation.primaryCategory]
                             .shortLabel
@@ -491,7 +524,7 @@ export function ProjectTable({
                         <Badge
                           key={themeKey}
                           variant="outline"
-                          className="rounded-full"
+                          className="rounded-full text-[11px]"
                         >
                           {themeDefinitionByKey[themeKey].shortLabel}
                         </Badge>
@@ -503,7 +536,7 @@ export function ProjectTable({
                           key={criterion.key}
                           variant="secondary"
                           className={cn(
-                            "border-border/50 bg-secondary/60 rounded-full border",
+                            "border-border/50 bg-secondary/60 rounded-full border text-[11px]",
                             scoreTone(project.curation[criterion.key]),
                           )}
                         >

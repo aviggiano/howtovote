@@ -35,9 +35,12 @@ import {
   defaultBudget,
   defaultMaxProjects,
   defaultPresetKey,
+  maxThemeWeightMultiplier,
   maxUserWeightMultiplier,
+  minThemeWeightMultiplier,
   minUserWeightMultiplier,
   presets,
+  themeWeightStep,
   unitCriterionMultipliers,
   unitThemeMultipliers,
   weightStep,
@@ -70,22 +73,24 @@ type AllocatorPageProps = {
 type WeightStepperProps = {
   label: string;
   description: string;
-  value: number;
+  decreaseDisabled: boolean;
   onDecrease: () => void;
   onIncrease: () => void;
+  increaseDisabled: boolean;
+  valueLabel: string;
 };
 
-function formatMultiplier(value: number) {
-  return `${value.toFixed(2)}x`;
+function formatMultiplier(value: number, fractionDigits = 2) {
+  return `${value.toFixed(fractionDigits)}x`;
 }
 
-function clampWeight(value: number) {
-  return Number(
-    Math.max(
-      minUserWeightMultiplier,
-      Math.min(maxUserWeightMultiplier, value),
-    ).toFixed(2),
-  );
+function clampWeight(
+  value: number,
+  min: number,
+  max: number,
+  precision: number,
+) {
+  return Number(Math.max(min, Math.min(max, value)).toFixed(precision));
 }
 
 function parseMaxProjectsValue(value: string, projectCount: number) {
@@ -115,10 +120,21 @@ function adjustWeight<T extends string>(
   weights: Record<T, number>,
   key: T,
   direction: -1 | 1,
+  options: {
+    max: number;
+    min: number;
+    precision: number;
+    step: number;
+  },
 ) {
   return {
     ...weights,
-    [key]: clampWeight(weights[key] + direction * weightStep),
+    [key]: clampWeight(
+      weights[key] + direction * options.step,
+      options.min,
+      options.max,
+      options.precision,
+    ),
   };
 }
 
@@ -167,21 +183,26 @@ function DataChipButton({ children, onClick }: DataChipButtonProps) {
 function WeightStepper({
   label,
   description,
-  value,
+  decreaseDisabled,
   onDecrease,
   onIncrease,
+  increaseDisabled,
+  valueLabel,
 }: WeightStepperProps) {
   return (
     <div className="border-border/70 bg-background/70 rounded-3xl border p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-foreground font-semibold">{label}</p>
           <p className="text-muted-foreground mt-1 text-sm leading-6">
             {description}
           </p>
         </div>
-        <Badge variant="secondary" className="rounded-full">
-          {formatMultiplier(value)}
+        <Badge
+          variant="secondary"
+          className="w-[5.75rem] shrink-0 justify-center rounded-full tabular-nums"
+        >
+          {valueLabel}
         </Badge>
       </div>
       <div className="mt-4 flex items-center gap-2">
@@ -191,12 +212,12 @@ function WeightStepper({
           size="icon"
           className="rounded-full"
           onClick={onDecrease}
-          disabled={value <= minUserWeightMultiplier}
+          disabled={decreaseDisabled}
         >
           <Minus className="h-4 w-4" />
         </Button>
-        <div className="border-border/70 bg-secondary/40 text-foreground flex-1 rounded-full border px-3 py-2 text-center text-sm font-medium">
-          {formatMultiplier(value)}
+        <div className="border-border/70 bg-secondary/40 text-foreground flex-1 rounded-full border px-3 py-2 text-center text-sm font-medium tabular-nums">
+          {valueLabel}
         </div>
         <Button
           type="button"
@@ -204,7 +225,7 @@ function WeightStepper({
           size="icon"
           className="rounded-full"
           onClick={onIncrease}
-          disabled={value >= maxUserWeightMultiplier}
+          disabled={increaseDisabled}
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -326,13 +347,24 @@ export function AllocatorPage({
         criterionMultipliers,
         criterionKey,
         direction,
+        {
+          min: minUserWeightMultiplier,
+          max: maxUserWeightMultiplier,
+          step: weightStep,
+          precision: 2,
+        },
       ),
     });
   }
 
   function updateThemeMultiplier(themeKey: ThemeKey, direction: -1 | 1) {
     updateUrlState({
-      themeMultipliers: adjustWeight(themeMultipliers, themeKey, direction),
+      themeMultipliers: adjustWeight(themeMultipliers, themeKey, direction, {
+        min: minThemeWeightMultiplier,
+        max: maxThemeWeightMultiplier,
+        step: themeWeightStep,
+        precision: 0,
+      }),
     });
   }
 
@@ -517,12 +549,22 @@ export function AllocatorPage({
                           key={criterion.key}
                           label={criterion.label}
                           description={`Current multiplier for ${criterion.label.toLowerCase()}.`}
-                          value={criterionMultipliers[criterion.key]}
+                          valueLabel={formatMultiplier(
+                            criterionMultipliers[criterion.key],
+                          )}
                           onDecrease={() =>
                             updateCriterionMultiplier(criterion.key, -1)
                           }
                           onIncrease={() =>
                             updateCriterionMultiplier(criterion.key, 1)
+                          }
+                          decreaseDisabled={
+                            criterionMultipliers[criterion.key] <=
+                            minUserWeightMultiplier
+                          }
+                          increaseDisabled={
+                            criterionMultipliers[criterion.key] >=
+                            maxUserWeightMultiplier
                           }
                         />
                       ))}
@@ -557,11 +599,22 @@ export function AllocatorPage({
                           key={theme.key}
                           label={theme.label}
                           description={theme.blurb}
-                          value={themeMultipliers[theme.key]}
+                          valueLabel={formatMultiplier(
+                            themeMultipliers[theme.key],
+                            0,
+                          )}
                           onDecrease={() =>
                             updateThemeMultiplier(theme.key, -1)
                           }
                           onIncrease={() => updateThemeMultiplier(theme.key, 1)}
+                          decreaseDisabled={
+                            themeMultipliers[theme.key] <=
+                            minThemeWeightMultiplier
+                          }
+                          increaseDisabled={
+                            themeMultipliers[theme.key] >=
+                            maxThemeWeightMultiplier
+                          }
                         />
                       ))}
                     </div>
@@ -641,7 +694,7 @@ export function AllocatorPage({
                         className="rounded-full"
                       >
                         {theme.shortLabel}{" "}
-                        {formatMultiplier(themeMultipliers[theme.key])}
+                        {formatMultiplier(themeMultipliers[theme.key], 0)}
                       </Badge>
                     ))
                   ) : (
@@ -677,6 +730,18 @@ export function AllocatorPage({
           onQueryChange={setQuery}
           qfEstimateContext={qfEstimateContext}
         />
+
+        <footer className="border-border/70 text-muted-foreground flex flex-wrap items-center justify-center gap-2 border-t pt-2 pb-8 text-sm">
+          <span>Find more from the builder on</span>
+          <a
+            href="https://x.com/aviggiano"
+            target="_blank"
+            rel="noreferrer"
+            className="text-foreground decoration-primary/40 font-medium underline underline-offset-4"
+          >
+            X (formerly Twitter)
+          </a>
+        </footer>
       </div>
     </main>
   );

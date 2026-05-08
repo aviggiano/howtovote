@@ -625,11 +625,7 @@ export function AllocatorPage({
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <AllocationSummary
-            projects={recommendations}
-            maxProjects={maxProjects}
-          />
+        <section className="space-y-6">
           <Card className="border-border/80 bg-card/88 shadow-sm">
             <CardHeader className="gap-3">
               <CardTitle className="font-heading text-2xl">
@@ -722,6 +718,10 @@ export function AllocatorPage({
               </div>
             </CardContent>
           </Card>
+          <AllocationSummary
+            projects={recommendations}
+            maxProjects={maxProjects}
+          />
         </section>
 
         <ProjectTable

@@ -87,7 +87,7 @@ function getSignalTotal(project: ProjectRecommendation) {
 
 function scoreTone(score: number) {
   if (score >= 4.5) {
-    return "text-primary";
+    return "text-sky-700";
   }
   if (score >= 3.5) {
     return "text-foreground";
@@ -308,14 +308,14 @@ export function ProjectTable({
         const project = row.original;
 
         return (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-col gap-1.5">
             {criterionDefinitions.map((criterion) => (
               <Badge
                 key={criterion.key}
                 variant="secondary"
                 title={`${criterion.label}. ${criterion.description}`}
                 className={cn(
-                  "border-border/50 bg-secondary/60 rounded-full border text-[11px]",
+                  "border-border/50 bg-secondary/60 justify-start rounded-full border px-2.5 text-[11px]",
                   scoreTone(project.curation[criterion.key]),
                 )}
               >
@@ -530,13 +530,13 @@ export function ProjectTable({
                         </Badge>
                       ))}
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
+                    <div className="mt-3 flex flex-col gap-1.5">
                       {criterionDefinitions.map((criterion) => (
                         <Badge
                           key={criterion.key}
                           variant="secondary"
                           className={cn(
-                            "border-border/50 bg-secondary/60 rounded-full border text-[11px]",
+                            "border-border/50 bg-secondary/60 justify-start rounded-full border px-2.5 text-[11px]",
                             scoreTone(project.curation[criterion.key]),
                           )}
                         >

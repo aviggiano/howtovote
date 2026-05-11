@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useDeferredValue, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ExternalLink,
@@ -95,6 +96,13 @@ type DataChipButtonProps = {
 };
 
 type CopyState = "idle" | "copied" | "error";
+
+type QuickSetupCardProps = {
+  maxProjects: number;
+  presetKey: string;
+  projectCount: number;
+  onUpdate: (next: { maxProjects?: number; presetKey?: string }) => void;
+};
 
 function formatMultiplier(value: number, fractionDigits = 2) {
   return `${value.toFixed(fractionDigits)}x`;
@@ -194,6 +202,106 @@ function DataChipButton({
       {children}
       <Link2 className="h-3.5 w-3.5" />
     </button>
+  );
+}
+
+function QuickSetupCard({
+  maxProjects,
+  presetKey,
+  projectCount,
+  onUpdate,
+}: QuickSetupCardProps) {
+  return (
+    <Card className="panel-border bg-card/88">
+      <CardHeader className="gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="eyebrow text-muted-foreground">Quick setup</p>
+            <CardTitle className="text-xl font-semibold tracking-[-0.02em]">
+              Quick setup
+            </CardTitle>
+          </div>
+          <Link
+            href="/explore"
+            className="border-border/75 bg-background/78 text-foreground hover:border-primary/30 hover:bg-background inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
+          >
+            Explore graph
+          </Link>
+        </div>
+        <CardDescription className="leading-6">
+          Choose a starting point, cap the ballot size, then compare against
+          live round traction below.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="space-y-2">
+          <p className="eyebrow text-muted-foreground">Preset</p>
+          <div className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-4">
+            {presets.map((preset) => {
+              const active = preset.key === presetKey;
+
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => onUpdate({ presetKey: preset.key })}
+                  className={`cursor-pointer rounded-[1.25rem] border px-4 py-3.5 text-left transition ${
+                    active
+                      ? "border-primary/35 bg-primary/8 shadow-[inset_0_1px_0_color-mix(in_oklab,white_60%,transparent)]"
+                      : "border-border/75 bg-background/72 hover:border-primary/28 hover:bg-background/92"
+                  }`}
+                >
+                  <p className="text-foreground text-sm font-semibold">
+                    {preset.label}
+                  </p>
+                  <p className="text-muted-foreground mt-1.5 text-sm leading-6">
+                    {preset.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="border-border/75 bg-background/72 rounded-[1.35rem] border px-4 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <label
+              htmlFor="max-projects"
+              className="space-y-1 text-sm leading-6"
+            >
+              <span className="eyebrow text-muted-foreground">Ballot cap</span>
+              <span className="text-foreground block">
+                Number of projects to include.
+              </span>
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="w-28">
+                <Input
+                  id="max-projects"
+                  type="number"
+                  min="1"
+                  max={projectCount}
+                  step="1"
+                  value={maxProjects}
+                  onChange={(event) =>
+                    onUpdate({
+                      maxProjects: parseMaxProjectsValue(
+                        event.target.value,
+                        projectCount,
+                      ),
+                    })
+                  }
+                  aria-label="Maximum projects to include"
+                />
+              </div>
+              <p className="text-muted-foreground text-sm leading-6">
+                The allocator always returns a 100% ballot split.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -417,6 +525,12 @@ export function AllocatorPage({
                 <DataChipLink href={OFFICIAL_PROJECT_SHEET_URL}>
                   Source sheet
                 </DataChipLink>
+                <Link
+                  href="/explore"
+                  className="border-border/75 bg-background/78 text-foreground hover:border-primary/30 hover:bg-background inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:-translate-y-px"
+                >
+                  Explore graph
+                </Link>
                 <DataChipButton
                   onClick={copyShareLink}
                   active={copyState !== "idle"}
@@ -477,89 +591,6 @@ export function AllocatorPage({
 
         <section className="grid gap-6 xl:grid-cols-[minmax(19rem,22rem)_minmax(0,1fr)]">
           <aside className="space-y-4 xl:sticky xl:top-6 xl:max-h-[calc(100svh-3rem)] xl:self-start xl:overflow-y-auto xl:pr-1">
-            <Card className="panel-border bg-card/88">
-              <CardHeader className="gap-2">
-                <p className="eyebrow text-muted-foreground">Quick setup</p>
-                <CardTitle className="text-xl font-semibold tracking-[-0.02em]">
-                  Quick setup
-                </CardTitle>
-                <CardDescription className="leading-6">
-                  Choose a starting point, then cap how many projects make the
-                  ballot.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-2">
-                  <p className="eyebrow text-muted-foreground">Preset</p>
-                  <div className="grid gap-2">
-                    {presets.map((preset) => {
-                      const active = preset.key === presetKey;
-
-                      return (
-                        <button
-                          key={preset.key}
-                          type="button"
-                          onClick={() =>
-                            updateUrlState({ presetKey: preset.key })
-                          }
-                          className={`cursor-pointer rounded-[1.25rem] border px-4 py-3.5 text-left transition ${
-                            active
-                              ? "border-primary/35 bg-primary/8 shadow-[inset_0_1px_0_color-mix(in_oklab,white_60%,transparent)]"
-                              : "border-border/75 bg-background/72 hover:border-primary/28 hover:bg-background/92"
-                          }`}
-                        >
-                          <p className="text-foreground text-sm font-semibold">
-                            {preset.label}
-                          </p>
-                          <p className="text-muted-foreground mt-1.5 text-sm leading-6">
-                            {preset.description}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="border-border/75 bg-background/72 rounded-[1.35rem] border px-4 py-4">
-                  <div className="flex items-end justify-between gap-3">
-                    <label
-                      htmlFor="max-projects"
-                      className="space-y-1 text-sm leading-6"
-                    >
-                      <span className="eyebrow text-muted-foreground">
-                        Ballot cap
-                      </span>
-                      <span className="text-foreground block">
-                        Number of projects to include.
-                      </span>
-                    </label>
-                    <div className="w-28">
-                      <Input
-                        id="max-projects"
-                        type="number"
-                        min="1"
-                        max={projects.length}
-                        step="1"
-                        value={maxProjects}
-                        onChange={(event) =>
-                          updateUrlState({
-                            maxProjects: parseMaxProjectsValue(
-                              event.target.value,
-                              projects.length,
-                            ),
-                          })
-                        }
-                        aria-label="Maximum projects to include"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground mt-3 text-sm leading-6">
-                    The allocator always returns a 100% ballot split.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
             <Card className="panel-border bg-primary/6 shadow-[0_24px_70px_-54px_color-mix(in_oklab,var(--color-primary)_30%,transparent)]">
               <CardHeader className="gap-2">
                 <div className="flex items-center justify-between gap-3">
@@ -811,6 +842,12 @@ export function AllocatorPage({
             <MatchingTransparencyCard
               matchingTransparency={matchingTransparency}
               qfEstimateContext={qfEstimateContext}
+            />
+            <QuickSetupCard
+              maxProjects={maxProjects}
+              presetKey={presetKey}
+              projectCount={projects.length}
+              onUpdate={updateUrlState}
             />
             <ProjectTable
               projects={filteredRecommendations}

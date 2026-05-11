@@ -1,4 +1,5 @@
 import type {
+  ExploreDonation,
   MatchingDonorTrace,
   MatchingTransparency,
   ProjectQfEstimate,
@@ -102,6 +103,7 @@ type RawProjectEstimate = ProjectQfEstimate & {
 type QfEstimateBundle = {
   context: QfEstimateContext;
   estimatesBySlug: Map<string, ProjectQfEstimate>;
+  exploreDonations: ExploreDonation[];
   transparency: MatchingTransparency;
 };
 
@@ -1050,6 +1052,7 @@ function buildProjectEstimate(
   holderIntervalsByWallet: Map<string, WalletInterval[]>,
   donationChainPositionsById: Map<string, DonationChainPosition>,
   donorTraceBuilders: Map<string, DonorTraceBuilder>,
+  exploreDonations: ExploreDonation[],
 ): ProjectEstimateComputation {
   const actualDonorTotals = new Map<string, number>();
   const weightedDonorTotals = new Map<string, number>();
@@ -1103,6 +1106,21 @@ function buildProjectEstimate(
       unresolvedRaisedUsd += amount;
     }
 
+    if (donorWallet) {
+      exploreDonations.push({
+        id: donation.id,
+        projectId: project.projectId,
+        projectSlug: project.projectSlug,
+        donorWalletAddress: donorWallet,
+        actualUsd: Number(amount.toFixed(2)),
+        weightedUsd: Number(weightedAmount.toFixed(2)),
+        donatedAt: new Date(donationTimestampMs).toISOString(),
+        transactionHash: donation.transactionId?.toLowerCase() ?? null,
+        transactionNetworkId: donation.transactionNetworkId,
+        isVerifiedBadgeDonation,
+      });
+    }
+
     if (!isVerifiedBadgeDonation || !donorWallet) {
       continue;
     }
@@ -1115,6 +1133,8 @@ function buildProjectEstimate(
       donatedAt: new Date(donationTimestampMs).toISOString(),
       actualUsd: Number(amount.toFixed(2)),
       weightedUsd: Number(weightedAmount.toFixed(2)),
+      transactionHash: donation.transactionId?.toLowerCase() ?? null,
+      transactionNetworkId: donation.transactionNetworkId,
     });
 
     const donorTrace = donorTraceBuilders.get(donorWallet) ?? {
@@ -1246,12 +1266,14 @@ export async function getEthereumSecurityQfEstimates(): Promise<QfEstimateBundle
     projectsWithDonations.flatMap((project) => project.donations),
   );
   const donorTraceBuilders = new Map<string, DonorTraceBuilder>();
+  const exploreDonations: ExploreDonation[] = [];
   const computations = projectsWithDonations.map((project) =>
     buildProjectEstimate(
       project,
       holderIntervalsByWallet,
       donationChainPositionsById,
       donorTraceBuilders,
+      exploreDonations,
     ),
   );
   const weightedRawEstimates = computations.map(
@@ -1359,6 +1381,7 @@ export async function getEthereumSecurityQfEstimates(): Promise<QfEstimateBundle
       unresolvedRaisedUsd: Number(unresolvedRaisedUsd.toFixed(2)),
     },
     estimatesBySlug,
+    exploreDonations,
     transparency: {
       donorTraces: visibleDonorTraces,
       verifiedBadgeDonorWalletCount: donorTraces.length,

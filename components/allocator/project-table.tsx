@@ -41,6 +41,10 @@ import {
   getGivethRoundUrl,
 } from "@/data/allocator-metadata";
 import { themeDefinitionByKey } from "@/data/themes";
+import {
+  getAddressExplorerUrl,
+  getTransactionExplorerUrl,
+} from "@/lib/explorer-links";
 import { cn } from "@/lib/utils";
 
 type ProjectTableProps = {
@@ -117,16 +121,63 @@ function formatConfidence(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-function formatWallet(value: string) {
-  return `${value.slice(0, 6)}...${value.slice(-4)}`;
-}
-
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
   }).format(new Date(value));
+}
+
+function WalletValue({ walletAddress }: { walletAddress: string }) {
+  const explorerUrl = getAddressExplorerUrl(walletAddress);
+
+  if (!explorerUrl) {
+    return <span className="font-mono text-[0.72rem]">{walletAddress}</span>;
+  }
+
+  return (
+    <a
+      href={explorerUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="text-foreground hover:text-primary font-mono text-[0.72rem] break-all underline decoration-transparent underline-offset-4 transition hover:decoration-current"
+    >
+      {walletAddress}
+    </a>
+  );
+}
+
+function TransactionValue({
+  networkId,
+  transactionHash,
+}: {
+  networkId: number | null;
+  transactionHash: string | null;
+}) {
+  if (!transactionHash) {
+    return <span className="text-muted-foreground text-xs">No tx</span>;
+  }
+
+  const explorerUrl = getTransactionExplorerUrl(
+    transactionHash,
+    networkId ?? 1,
+  );
+
+  if (!explorerUrl) {
+    return <span className="font-mono text-[0.72rem]">{transactionHash}</span>;
+  }
+
+  return (
+    <a
+      href={explorerUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="text-foreground hover:text-primary font-mono text-[0.72rem] break-all underline decoration-transparent underline-offset-4 transition hover:decoration-current"
+    >
+      {transactionHash}
+    </a>
+  );
 }
 
 function getSignalTotal(project: ProjectRecommendation) {
@@ -304,6 +355,7 @@ function ProjectBadgeTracePanel({ project }: ProjectIdentityProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Wallet</TableHead>
+                  <TableHead>Tx</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actual $</TableHead>
                   <TableHead>Weighted $</TableHead>
@@ -314,8 +366,14 @@ function ProjectBadgeTracePanel({ project }: ProjectIdentityProps) {
                   <TableRow
                     key={`${traceRow.walletAddress}:${traceRow.donatedAt}:${traceRow.actualUsd}`}
                   >
-                    <TableCell className="font-mono text-xs">
-                      {formatWallet(traceRow.walletAddress)}
+                    <TableCell>
+                      <WalletValue walletAddress={traceRow.walletAddress} />
+                    </TableCell>
+                    <TableCell>
+                      <TransactionValue
+                        transactionHash={traceRow.transactionHash}
+                        networkId={traceRow.transactionNetworkId}
+                      />
                     </TableCell>
                     <TableCell>{formatDate(traceRow.donatedAt)}</TableCell>
                     <TableCell>{formatCurrency(traceRow.actualUsd)}</TableCell>
@@ -336,12 +394,16 @@ function ProjectBadgeTracePanel({ project }: ProjectIdentityProps) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-foreground font-mono text-xs font-semibold">
-                      {formatWallet(traceRow.walletAddress)}
-                    </p>
+                    <WalletValue walletAddress={traceRow.walletAddress} />
                     <p className="text-muted-foreground mt-1 text-sm">
                       {formatDate(traceRow.donatedAt)}
                     </p>
+                    <div className="mt-2">
+                      <TransactionValue
+                        transactionHash={traceRow.transactionHash}
+                        networkId={traceRow.transactionNetworkId}
+                      />
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-foreground text-sm font-semibold">

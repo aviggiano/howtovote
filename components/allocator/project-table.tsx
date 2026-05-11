@@ -125,6 +125,7 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   }).format(new Date(value));
 }
 
@@ -283,7 +284,8 @@ function MethodologyPanel({ title, summary, children }: MethodologyPanelProps) {
 
 function ProjectBadgeTracePanel({ project }: ProjectIdentityProps) {
   const traceRows = project.qfEstimate?.badgeDonationTraces ?? [];
-  const unresolvedDonationCount = project.qfEstimate?.unresolvedDonationCount ?? 0;
+  const unresolvedDonationCount =
+    project.qfEstimate?.unresolvedDonationCount ?? 0;
   const unresolvedRaisedUsd = project.qfEstimate?.unresolvedRaisedUsd ?? 0;
 
   return (
@@ -317,7 +319,9 @@ function ProjectBadgeTracePanel({ project }: ProjectIdentityProps) {
                     </TableCell>
                     <TableCell>{formatDate(traceRow.donatedAt)}</TableCell>
                     <TableCell>{formatCurrency(traceRow.actualUsd)}</TableCell>
-                    <TableCell>{formatCurrency(traceRow.weightedUsd)}</TableCell>
+                    <TableCell>
+                      {formatCurrency(traceRow.weightedUsd)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -909,7 +913,9 @@ export function ProjectTable({
                               variant="ghost"
                               size="sm"
                               className="rounded-full"
-                              onClick={() => toggleProjectTrace(project.projectUrl)}
+                              onClick={() =>
+                                toggleProjectTrace(project.projectUrl)
+                              }
                             >
                               {expandedProjectUrl === project.projectUrl
                                 ? "Hide badge trace"
@@ -981,9 +987,8 @@ export function ProjectTable({
                 </p>
                 <p className="text-muted-foreground text-sm leading-6">
                   Verified badge-holder donations are weighted 4x by checking
-                  historical ownership of{" "}
-                  {qfEstimateContext.badgeContractName} (
-                  {qfEstimateContext.badgeContractSymbol}) against each
+                  historical ownership of {qfEstimateContext.badgeContractName}{" "}
+                  ({qfEstimateContext.badgeContractSymbol}) against each
                   donation timestamp.
                 </p>
                 <p className="text-muted-foreground text-sm leading-6">

@@ -39,6 +39,7 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   }).format(new Date(value));
 }
 
@@ -46,28 +47,25 @@ export function MatchingTransparencyCard({
   matchingTransparency,
   qfEstimateContext,
 }: MatchingTransparencyProps) {
-  const visibleDonors = matchingTransparency.donorTraces.slice(0, 16);
+  const visibleDonors = matchingTransparency.donorTraces;
   const hiddenDonorCount = Math.max(
     0,
-    matchingTransparency.donorTraces.length - visibleDonors.length,
+    matchingTransparency.verifiedBadgeDonorWalletCount - visibleDonors.length,
   );
 
   return (
     <Card className="panel-border bg-card/90 shadow-[0_24px_70px_-54px_color-mix(in_oklab,var(--color-primary)_20%,transparent)]">
       <CardHeader className="border-border/70 gap-4 border-b pb-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
-          <p className="eyebrow text-muted-foreground">
-            Matching transparency
-          </p>
+          <p className="eyebrow text-muted-foreground">Matching transparency</p>
           <CardTitle className="text-foreground text-2xl font-semibold tracking-[-0.03em]">
             Badge-weighting trace
           </CardTitle>
           <p className="text-muted-foreground max-w-3xl text-sm leading-6">
-            The canonical estimate checks{" "}
-            {qfEstimateContext.badgeContractName} ownership on Ethereum against
-            each donation timestamp. Verified badge-holder donations are
-            weighted 4x inside the QF formula. Unresolved donations stay
-            unboosted.
+            The canonical estimate checks {qfEstimateContext.badgeContractName}{" "}
+            ownership on Ethereum against each donation timestamp. Verified
+            badge-holder donations are weighted 4x inside the QF formula.
+            Unresolved donations stay unboosted.
           </p>
         </div>
 
@@ -87,7 +85,9 @@ export function MatchingTransparencyCard({
           <div className="border-border/75 bg-background/78 rounded-[1.2rem] border px-4 py-3">
             <p className="eyebrow text-muted-foreground">Verified wallets</p>
             <p className="text-foreground mt-2 text-xl font-semibold">
-              {formatInteger(matchingTransparency.verifiedBadgeDonorWalletCount)}
+              {formatInteger(
+                matchingTransparency.verifiedBadgeDonorWalletCount,
+              )}
             </p>
           </div>
           <div className="border-border/75 bg-background/78 rounded-[1.2rem] border px-4 py-3">

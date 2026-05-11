@@ -3,9 +3,14 @@ import { generatedProjectCurations } from "@/data/curation.generated";
 import { getEthereumSecurityQfEstimates } from "@/lib/fetch-qf-estimates";
 import { buildHeuristicCuration } from "@/lib/curation";
 import { getSheetProjects } from "@/lib/fetch-sheet";
-import type { AllocationProject, QfEstimateContext } from "@/lib/types";
+import type {
+  AllocationProject,
+  MatchingTransparency,
+  QfEstimateContext,
+} from "@/lib/types";
 
 type AllocationDataset = {
+  matchingTransparency: MatchingTransparency;
   projects: AllocationProject[];
   qfEstimateContext: QfEstimateContext;
 };
@@ -22,6 +27,7 @@ export const getAllocationDataset = cache(
     ]);
 
     return {
+      matchingTransparency: qfEstimates.transparency,
       projects: projects.map((project) => ({
         ...project,
         curation:

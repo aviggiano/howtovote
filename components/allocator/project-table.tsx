@@ -95,6 +95,20 @@ function formatInteger(value: number) {
   }).format(value);
 }
 
+function formatSignedCurrency(value: number) {
+  const absolute = formatCurrency(Math.abs(value));
+
+  if (value > 0) {
+    return `+${absolute}`;
+  }
+
+  if (value < 0) {
+    return `-${absolute}`;
+  }
+
+  return absolute;
+}
+
 function formatPercent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
@@ -281,6 +295,14 @@ export function ProjectTable({
     projects,
     (project) => project.qfEstimate?.donorCount ?? 0,
   );
+  const qfBadgeDonorMax = getMaxValue(
+    projects,
+    (project) => project.qfEstimate?.verifiedBadgeDonorCount ?? 0,
+  );
+  const qfBadgeRaisedMax = getMaxValue(
+    projects,
+    (project) => project.qfEstimate?.verifiedBadgeRaisedUsd ?? 0,
+  );
   const qfMatchMax = getMaxValue(
     projects,
     (project) => project.qfEstimate?.estimatedMatchUsd ?? 0,
@@ -393,15 +415,57 @@ export function ProjectTable({
         ),
     },
     {
+      accessorFn: (project) => project.qfEstimate?.verifiedBadgeDonorCount ?? 0,
+      id: "qfBadgeDonorCount",
+      header: "Badge Donors",
+      cell: ({ row }) =>
+        row.original.qfEstimate ? (
+          <NumericBarCell
+            value={row.original.qfEstimate.verifiedBadgeDonorCount}
+            max={qfBadgeDonorMax}
+            primary={formatInteger(
+              row.original.qfEstimate.verifiedBadgeDonorCount,
+            )}
+            secondary={`${formatInteger(row.original.qfEstimate.verifiedBadgeDonationCount)} donations`}
+          />
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
+      accessorFn: (project) => project.qfEstimate?.verifiedBadgeRaisedUsd ?? 0,
+      id: "qfBadgeRaisedUsd",
+      header: "Badge $",
+      cell: ({ row }) =>
+        row.original.qfEstimate ? (
+          <NumericBarCell
+            value={row.original.qfEstimate.verifiedBadgeRaisedUsd}
+            max={qfBadgeRaisedMax}
+            primary={formatCurrency(
+              row.original.qfEstimate.verifiedBadgeRaisedUsd,
+            )}
+          />
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
       accessorFn: (project) => project.qfEstimate?.estimatedMatchUsd ?? 0,
       id: "qfEstimatedMatchUsd",
-      header: "QF Est. Match",
+      header: "QF Match",
       cell: ({ row }) =>
         row.original.qfEstimate ? (
           <NumericBarCell
             value={row.original.qfEstimate.estimatedMatchUsd}
             max={qfMatchMax}
             primary={formatCurrency(row.original.qfEstimate.estimatedMatchUsd)}
+            secondary={
+              row.original.qfEstimate.estimatedMatchDeltaUsd !== 0
+                ? formatSignedCurrency(
+                    row.original.qfEstimate.estimatedMatchDeltaUsd,
+                  )
+                : "No boost"
+            }
           />
         ) : (
           <span className="text-muted-foreground">-</span>
@@ -632,11 +696,45 @@ export function ProjectTable({
                             </div>
                             <div className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3">
                               <p className="eyebrow text-muted-foreground">
-                                Est. match
+                                Match
                               </p>
                               <p className="text-foreground mt-2 text-sm font-semibold">
                                 {formatCurrency(
                                   project.qfEstimate.estimatedMatchUsd,
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
+                        {project.qfEstimate ? (
+                          <div className="mt-2 grid grid-cols-3 gap-2">
+                            <div className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3">
+                              <p className="eyebrow text-muted-foreground">
+                                Badge donors
+                              </p>
+                              <p className="text-foreground mt-2 text-sm font-semibold">
+                                {formatInteger(
+                                  project.qfEstimate.verifiedBadgeDonorCount,
+                                )}
+                              </p>
+                            </div>
+                            <div className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3">
+                              <p className="eyebrow text-muted-foreground">
+                                Badge $
+                              </p>
+                              <p className="text-foreground mt-2 text-sm font-semibold">
+                                {formatCurrency(
+                                  project.qfEstimate.verifiedBadgeRaisedUsd,
+                                )}
+                              </p>
+                            </div>
+                            <div className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3">
+                              <p className="eyebrow text-muted-foreground">
+                                Match delta
+                              </p>
+                              <p className="text-foreground mt-2 text-sm font-semibold">
+                                {formatSignedCurrency(
+                                  project.qfEstimate.estimatedMatchDeltaUsd,
                                 )}
                               </p>
                             </div>
@@ -690,8 +788,8 @@ export function ProjectTable({
             </MethodologyPanel>
 
             <MethodologyPanel
-              title="Live QF data"
-              summary="Raised, donors, and estimated match are public approximations refreshed from Giveth."
+              title="Canonical QF model"
+              summary="Raised, donors, badge weighting, and estimated match are refreshed from Giveth and Ethereum."
             >
               <div className="space-y-4">
                 <p className="text-muted-foreground text-sm leading-6">
@@ -700,7 +798,14 @@ export function ProjectTable({
                   round&apos;s $1 minimum, aggregated by donor wallet.
                 </p>
                 <p className="text-muted-foreground text-sm leading-6">
-                  Estimated match applies a standard QF subsidy estimate,
+                  Verified badge-holder donations are weighted 4x by checking
+                  historical ownership of{" "}
+                  {qfEstimateContext.badgeContractName} (
+                  {qfEstimateContext.badgeContractSymbol}) against each
+                  donation timestamp.
+                </p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Estimated match applies that canonical QF subsidy estimate,
                   normalizes to the current{" "}
                   {formatCurrency(qfEstimateContext.matchingPoolUsd)} pool, and
                   enforces the round&apos;s{" "}
@@ -708,14 +813,19 @@ export function ProjectTable({
                   per-project cap ({formatCurrency(projectCapUsd)}).
                 </p>
                 <p className="text-muted-foreground text-sm leading-6">
-                  This does not model Giveth&apos;s non-public COCM clustering,
-                  badge-based donor multipliers, Passport checks, first-touch
-                  rules, or post-round review.
+                  Anonymous donations with no visible wallet stay unresolved and
+                  unboosted. This still does not model Giveth&apos;s non-public
+                  COCM clustering, Passport checks, first-touch rules, or
+                  post-round review.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <ReferenceChipLink
                     href={GIVETH_QF_DOCS_URL}
                     label="Giveth QF docs"
+                  />
+                  <ReferenceChipLink
+                    href={`https://eth.trusteeglobal.com/address/${qfEstimateContext.badgeContractAddress}`}
+                    label="Voting badge contract"
                   />
                   <ReferenceChipLink
                     href={GIVETH_COCM_ANNOUNCEMENT_URL}

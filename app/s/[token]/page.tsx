@@ -41,7 +41,8 @@ export default async function SharePage({ params }: SharePageProps) {
     notFound();
   }
 
-  const { projects, qfEstimateContext } = await getAllocationDataset();
+  const { matchingTransparency, projects, qfEstimateContext } =
+    await getAllocationDataset();
 
   return (
     <AllocatorPage
@@ -50,6 +51,7 @@ export default async function SharePage({ params }: SharePageProps) {
       initialPresetKey={decodedState.presetKey}
       initialCriterionMultipliers={decodedState.criterionMultipliers}
       initialThemeMultipliers={decodedState.themeMultipliers}
+      matchingTransparency={matchingTransparency}
       qfEstimateContext={qfEstimateContext}
     />
   );

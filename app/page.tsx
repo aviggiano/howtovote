@@ -34,7 +34,8 @@ export default async function Home({ searchParams }: HomeProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const shareState =
     getShareableAllocatorStateFromSearchParams(resolvedSearchParams);
-  const { projects, qfEstimateContext } = await getAllocationDataset();
+  const { matchingTransparency, projects, qfEstimateContext } =
+    await getAllocationDataset();
 
   return (
     <AllocatorPage
@@ -43,6 +44,7 @@ export default async function Home({ searchParams }: HomeProps) {
       initialPresetKey={shareState.presetKey}
       initialCriterionMultipliers={shareState.criterionMultipliers}
       initialThemeMultipliers={shareState.themeMultipliers}
+      matchingTransparency={matchingTransparency}
       qfEstimateContext={qfEstimateContext}
     />
   );

@@ -14,6 +14,7 @@ import {
   Target,
 } from "lucide-react";
 import { AllocationSummary } from "@/components/allocator/allocation-summary";
+import { MatchingTransparencyCard } from "@/components/allocator/matching-transparency";
 import { ProjectTable } from "@/components/allocator/project-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ import {
   type AllocationProject,
   type CriterionKey,
   type CriterionWeights,
+  type MatchingTransparency,
   type QfEstimateContext,
   type ThemeKey,
   type ThemeWeights,
@@ -66,6 +68,7 @@ type AllocatorPageProps = {
   initialPresetKey: string;
   initialCriterionMultipliers: CriterionWeights;
   initialThemeMultipliers: ThemeWeights;
+  matchingTransparency: MatchingTransparency;
   qfEstimateContext: QfEstimateContext;
 };
 
@@ -247,6 +250,7 @@ export function AllocatorPage({
   initialPresetKey,
   initialCriterionMultipliers,
   initialThemeMultipliers,
+  matchingTransparency,
   qfEstimateContext,
 }: AllocatorPageProps) {
   const router = useRouter();
@@ -803,6 +807,10 @@ export function AllocatorPage({
             <AllocationSummary
               projects={recommendations}
               maxProjects={maxProjects}
+            />
+            <MatchingTransparencyCard
+              matchingTransparency={matchingTransparency}
+              qfEstimateContext={qfEstimateContext}
             />
             <ProjectTable
               projects={filteredRecommendations}

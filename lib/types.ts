@@ -47,7 +47,13 @@ export type ProjectQfEstimate = {
   raisedUsd: number;
   donorCount: number;
   donationCount: number;
+  verifiedBadgeDonorCount: number;
+  verifiedBadgeDonationCount: number;
+  verifiedBadgeRaisedUsd: number;
+  unresolvedDonationCount: number;
+  unresolvedRaisedUsd: number;
   estimatedMatchUsd: number;
+  estimatedMatchDeltaUsd: number;
 };
 
 export type QfEstimateContext = {
@@ -58,6 +64,33 @@ export type QfEstimateContext = {
   matchingPoolTokenSymbol: string;
   maxPerProjectRatio: number;
   refreshIntervalMinutes: number;
+  badgeContractAddress: string;
+  badgeContractName: string;
+  badgeContractSymbol: string;
+  verifiedBadgeDonorWalletCount: number;
+  verifiedBadgeDonationCount: number;
+  verifiedBadgeRaisedUsd: number;
+  unresolvedDonationCount: number;
+  unresolvedRaisedUsd: number;
+};
+
+export type MatchingDonorTrace = {
+  walletAddress: string;
+  donationCount: number;
+  projectCount: number;
+  actualUsd: number;
+  weightedUsd: number;
+  firstDonationAt: string;
+  lastDonationAt: string;
+};
+
+export type MatchingTransparency = {
+  donorTraces: MatchingDonorTrace[];
+  verifiedBadgeDonorWalletCount: number;
+  verifiedBadgeDonationCount: number;
+  verifiedBadgeRaisedUsd: number;
+  unresolvedDonationCount: number;
+  unresolvedRaisedUsd: number;
 };
 
 export type SheetProject = {

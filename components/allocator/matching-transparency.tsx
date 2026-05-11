@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { MatchingTransparency, QfEstimateContext } from "@/lib/types";
+import { getAddressExplorerUrl } from "@/lib/explorer-links";
 
 type MatchingTransparencyProps = {
   matchingTransparency: MatchingTransparency;
@@ -31,16 +32,31 @@ function formatInteger(value: number) {
   }).format(value);
 }
 
-function formatWallet(walletAddress: string) {
-  return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
-}
-
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
   }).format(new Date(value));
+}
+
+function WalletValue({ walletAddress }: { walletAddress: string }) {
+  const explorerUrl = getAddressExplorerUrl(walletAddress);
+
+  if (!explorerUrl) {
+    return <span className="font-mono text-[0.72rem]">{walletAddress}</span>;
+  }
+
+  return (
+    <a
+      href={explorerUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="text-foreground hover:text-primary font-mono text-[0.72rem] break-all underline decoration-transparent underline-offset-4 transition hover:decoration-current"
+    >
+      {walletAddress}
+    </a>
+  );
 }
 
 export function MatchingTransparencyCard({
@@ -125,8 +141,10 @@ export function MatchingTransparencyCard({
             </div>
             <p className="text-muted-foreground mt-2 text-sm md:mt-0">
               Showing {formatInteger(visibleDonors.length)} of{" "}
-              {formatInteger(matchingTransparency.donorTraces.length)} verified
-              wallets.
+              {formatInteger(
+                matchingTransparency.verifiedBadgeDonorWalletCount,
+              )}{" "}
+              verified wallets.
             </p>
           </div>
 
@@ -147,8 +165,8 @@ export function MatchingTransparencyCard({
                   <TableBody>
                     {visibleDonors.map((donor) => (
                       <TableRow key={donor.walletAddress}>
-                        <TableCell className="font-mono text-xs">
-                          {formatWallet(donor.walletAddress)}
+                        <TableCell>
+                          <WalletValue walletAddress={donor.walletAddress} />
                         </TableCell>
                         <TableCell className="text-sm">
                           {formatDate(donor.firstDonationAt)} to{" "}
@@ -179,7 +197,7 @@ export function MatchingTransparencyCard({
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-foreground font-mono text-sm font-semibold">
-                          {formatWallet(donor.walletAddress)}
+                          <WalletValue walletAddress={donor.walletAddress} />
                         </p>
                         <p className="text-muted-foreground mt-1 text-sm">
                           {formatDate(donor.firstDonationAt)} to{" "}

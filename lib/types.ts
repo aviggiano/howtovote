@@ -46,6 +46,8 @@ export type BadgeDonationTrace = {
   donatedAt: string;
   actualUsd: number;
   weightedUsd: number;
+  transactionHash: string | null;
+  transactionNetworkId: number | null;
 };
 
 export type ProjectQfEstimate = {
@@ -97,6 +99,52 @@ export type MatchingTransparency = {
   verifiedBadgeDonorWalletCount: number;
   verifiedBadgeDonationCount: number;
   verifiedBadgeRaisedUsd: number;
+  unresolvedDonationCount: number;
+  unresolvedRaisedUsd: number;
+};
+
+export type ExploreDonation = {
+  id: string;
+  projectId: number;
+  projectSlug: string;
+  donorWalletAddress: string;
+  actualUsd: number;
+  weightedUsd: number;
+  donatedAt: string;
+  transactionHash: string | null;
+  transactionNetworkId: number | null;
+  isVerifiedBadgeDonation: boolean;
+};
+
+export type ExploreDonorNode = {
+  id: string;
+  walletAddress: string;
+  totalUsd: number;
+  weightedUsd: number;
+  donationCount: number;
+  projectCount: number;
+  verifiedBadgeDonationCount: number;
+};
+
+export type ExploreProjectNode = {
+  id: string;
+  projectId: number;
+  projectSlug: string;
+  projectUrl: string;
+  title: string;
+  ownerName: string;
+  imageUrl: string | null;
+  totalUsd: number;
+  donorCount: number;
+  verifiedBadgeRaisedUsd: number;
+  mainCategoryNames: string[];
+  themeBaskets: ThemeKey[];
+};
+
+export type ExploreGraph = {
+  donors: ExploreDonorNode[];
+  projects: ExploreProjectNode[];
+  donations: ExploreDonation[];
   unresolvedDonationCount: number;
   unresolvedRaisedUsd: number;
 };

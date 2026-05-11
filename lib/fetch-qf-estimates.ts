@@ -680,6 +680,7 @@ function buildProjectEstimate(
 ): ProjectEstimateComputation {
   const actualDonorTotals = new Map<string, number>();
   const weightedDonorTotals = new Map<string, number>();
+  const badgeDonationTraces: ProjectQfEstimate["badgeDonationTraces"] = [];
   const verifiedBadgeDonors = new Set<string>();
   let raisedUsd = 0;
   let weightedRaisedUsd = 0;
@@ -730,6 +731,12 @@ function buildProjectEstimate(
     verifiedBadgeDonors.add(donorWallet);
     verifiedBadgeDonationCount += 1;
     verifiedBadgeRaisedUsd += amount;
+    badgeDonationTraces.push({
+      walletAddress: donorWallet,
+      donatedAt: new Date(donationTimestampMs).toISOString(),
+      actualUsd: Number(amount.toFixed(2)),
+      weightedUsd: Number(weightedAmount.toFixed(2)),
+    });
 
     const donorTrace = donorTraceBuilders.get(donorWallet) ?? {
       actualUsd: 0,
@@ -770,6 +777,11 @@ function buildProjectEstimate(
       unresolvedRaisedUsd: Number(unresolvedRaisedUsd.toFixed(2)),
       estimatedMatchUsd: 0,
       estimatedMatchDeltaUsd: 0,
+      badgeDonationTraces: badgeDonationTraces.sort(
+        (left, right) =>
+          right.actualUsd - left.actualUsd ||
+          Date.parse(right.donatedAt) - Date.parse(left.donatedAt),
+      ),
       rawScore: computeRawScore(weightedDonorTotals, weightedRaisedUsd),
     },
   };
@@ -925,6 +937,7 @@ export async function getEthereumSecurityQfEstimates(): Promise<QfEstimateBundle
       estimatedMatchDeltaUsd: Number(
         (estimatedMatchUsd - baselineMatchUsd).toFixed(2),
       ),
+      badgeDonationTraces: estimate.badgeDonationTraces,
     });
   }
 

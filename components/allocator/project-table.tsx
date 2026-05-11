@@ -117,6 +117,17 @@ function formatConfidence(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatWallet(value: string) {
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(value));
+}
+
 function getSignalTotal(project: ProjectRecommendation) {
   return criterionDefinitions.reduce(
     (total, criterion) => total + project.curation[criterion.key],
@@ -270,12 +281,108 @@ function MethodologyPanel({ title, summary, children }: MethodologyPanelProps) {
   );
 }
 
+function ProjectBadgeTracePanel({ project }: ProjectIdentityProps) {
+  const traceRows = project.qfEstimate?.badgeDonationTraces ?? [];
+  const unresolvedDonationCount = project.qfEstimate?.unresolvedDonationCount ?? 0;
+  const unresolvedRaisedUsd = project.qfEstimate?.unresolvedRaisedUsd ?? 0;
+
+  return (
+    <div className="border-border/75 bg-background/80 space-y-4 rounded-[1.35rem] border p-4">
+      <div className="space-y-1">
+        <p className="eyebrow text-muted-foreground">Per-project badge trace</p>
+        <p className="text-foreground text-sm font-semibold">
+          Verified badge-holder donations for {project.title}
+        </p>
+      </div>
+
+      {traceRows.length > 0 ? (
+        <>
+          <div className="hidden md:block">
+            <Table className="table-fixed">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Wallet</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actual $</TableHead>
+                  <TableHead>Weighted $</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {traceRows.map((traceRow) => (
+                  <TableRow
+                    key={`${traceRow.walletAddress}:${traceRow.donatedAt}:${traceRow.actualUsd}`}
+                  >
+                    <TableCell className="font-mono text-xs">
+                      {formatWallet(traceRow.walletAddress)}
+                    </TableCell>
+                    <TableCell>{formatDate(traceRow.donatedAt)}</TableCell>
+                    <TableCell>{formatCurrency(traceRow.actualUsd)}</TableCell>
+                    <TableCell>{formatCurrency(traceRow.weightedUsd)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="space-y-2 md:hidden">
+            {traceRows.map((traceRow) => (
+              <div
+                key={`${traceRow.walletAddress}:${traceRow.donatedAt}:${traceRow.actualUsd}`}
+                className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-foreground font-mono text-xs font-semibold">
+                      {formatWallet(traceRow.walletAddress)}
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      {formatDate(traceRow.donatedAt)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-foreground text-sm font-semibold">
+                      {formatCurrency(traceRow.actualUsd)}
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {formatCurrency(traceRow.weightedUsd)} weighted
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-muted-foreground text-sm leading-6">
+          No verified badge-holder donations were detected for this project.
+        </p>
+      )}
+
+      {unresolvedDonationCount > 0 ? (
+        <div className="border-border/70 bg-secondary/18 rounded-[1.05rem] border p-3">
+          <p className="text-foreground text-sm font-semibold">
+            Unresolved donations
+          </p>
+          <p className="text-muted-foreground mt-2 text-sm leading-6">
+            {formatInteger(unresolvedDonationCount)} donations (
+            {formatCurrency(unresolvedRaisedUsd)}) did not expose a donor
+            wallet, so they remain unboosted in the canonical model.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ProjectTable({
   projects,
   query,
   onQueryChange,
   qfEstimateContext,
 }: ProjectTableProps) {
+  const [expandedProjectUrl, setExpandedProjectUrl] = React.useState<
+    string | null
+  >(null);
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "allocationPercent", desc: true },
   ]);
@@ -307,6 +414,12 @@ export function ProjectTable({
     projects,
     (project) => project.qfEstimate?.estimatedMatchUsd ?? 0,
   );
+
+  function toggleProjectTrace(projectUrl: string) {
+    setExpandedProjectUrl((current) =>
+      current === projectUrl ? null : projectUrl,
+    );
+  }
 
   const columns: ColumnDef<ProjectRecommendation>[] = [
     {
@@ -471,6 +584,34 @@ export function ProjectTable({
           <span className="text-muted-foreground">-</span>
         ),
     },
+    {
+      id: "badgeTrace",
+      header: "Trace",
+      cell: ({ row }) => {
+        const project = row.original;
+        const canExpand =
+          (project.qfEstimate?.badgeDonationTraces.length ?? 0) > 0 ||
+          (project.qfEstimate?.unresolvedDonationCount ?? 0) > 0;
+
+        if (!canExpand) {
+          return <span className="text-muted-foreground">-</span>;
+        }
+
+        return (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="rounded-full"
+            onClick={() => toggleProjectTrace(project.projectUrl)}
+          >
+            {expandedProjectUrl === project.projectUrl
+              ? "Hide trace"
+              : "View trace"}
+          </Button>
+        );
+      },
+    },
   ];
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -577,18 +718,36 @@ export function ProjectTable({
                       ))}
                     </TableHeader>
                     <TableBody>
-                      {visibleRows.map((row) => (
-                        <TableRow key={row.id} className="align-top">
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id}>
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
+                      {visibleRows.map((row) => {
+                        const project = row.original;
+                        const isExpanded =
+                          expandedProjectUrl === project.projectUrl;
+
+                        return (
+                          <React.Fragment key={row.id}>
+                            <TableRow className="align-top">
+                              {row.getVisibleCells().map((cell) => (
+                                <TableCell key={cell.id}>
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext(),
+                                  )}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                            {isExpanded ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={columns.length}
+                                  className="bg-background/40"
+                                >
+                                  <ProjectBadgeTracePanel project={project} />
+                                </TableCell>
+                              </TableRow>
+                            ) : null}
+                          </React.Fragment>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -738,6 +897,29 @@ export function ProjectTable({
                                 )}
                               </p>
                             </div>
+                          </div>
+                        ) : null}
+                        {(project.qfEstimate?.badgeDonationTraces.length ?? 0) >
+                          0 ||
+                        (project.qfEstimate?.unresolvedDonationCount ?? 0) >
+                          0 ? (
+                          <div className="mt-3">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="rounded-full"
+                              onClick={() => toggleProjectTrace(project.projectUrl)}
+                            >
+                              {expandedProjectUrl === project.projectUrl
+                                ? "Hide badge trace"
+                                : "View badge trace"}
+                            </Button>
+                          </div>
+                        ) : null}
+                        {expandedProjectUrl === project.projectUrl ? (
+                          <div className="mt-3">
+                            <ProjectBadgeTracePanel project={project} />
                           </div>
                         ) : null}
                       </div>

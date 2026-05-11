@@ -41,6 +41,13 @@ export type SocialLink = {
   type: string;
 };
 
+export type BadgeDonationTrace = {
+  walletAddress: string;
+  donatedAt: string;
+  actualUsd: number;
+  weightedUsd: number;
+};
+
 export type ProjectQfEstimate = {
   projectId: number;
   projectSlug: string;
@@ -54,6 +61,7 @@ export type ProjectQfEstimate = {
   unresolvedRaisedUsd: number;
   estimatedMatchUsd: number;
   estimatedMatchDeltaUsd: number;
+  badgeDonationTraces: BadgeDonationTrace[];
 };
 
 export type QfEstimateContext = {
